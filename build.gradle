@@ -1,0 +1,51 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.0'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'kr.co.seoulit'
+version = '0.0.1-SNAPSHOT'
+description = 'demo'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Web MVC (Spring Boot 4.x: spring-boot-starter-web -> spring-boot-starter-webmvc)
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    // MyBatis (메뉴 등 XML SQL 매퍼)
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.1'
+    // JPA (엔티티 기반 ORM)
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // MapStruct (DTO <-> Entity 매핑)
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    // 개발용 자동 재시작
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    // Oracle JDBC 드라이버
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
+    // Annotation Processors
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:4.0.1'
+    testCompileOnly 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
