@@ -2,6 +2,7 @@ package kr.co.seoulit.hisback.surgery.monitoring.service;
 
 import kr.co.seoulit.hisback.surgery.global.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.monitoring.dto.SurgeryStatusDto;
+import kr.co.seoulit.hisback.surgery.nursing.repository.NursingRecordRepository;
 import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
 import kr.co.seoulit.hisback.surgery.schedule.entity.SurgeryStatus;
 import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
@@ -28,10 +29,12 @@ import java.util.Map;
 public class SurgeryMonitoringService {
 
     private final SurgeryRepository surgeryRepository;
+    private final NursingRecordRepository nursingRecordRepository;
 
     /**
      * 수술 진행상태 변경 (SL2-39 / API-SUR-002)
-     * <p>수술중 진입 시 실제 시작시각, 완료 시 실제 종료시각을 자동 기록한다.</p>
+     * <p>수술중 진입 시 실제 시작시각, 완료 시 실제 종료시각을 자동 기록한다.
+     * BR-013: 물품 카운트 불일치(미해결)가 있으면 '완료' 전이를 거부한다.</p>
      */
     public SurgeryStatusDto changeStatus(Long surgeryId, SurgeryStatus status) {
         if (status == null) {
@@ -39,6 +42,11 @@ public class SurgeryMonitoringService {
         }
         Surgery surgery = surgeryRepository.findById(surgeryId)
                 .orElseThrow(() -> new BusinessException("수술 정보를 찾을 수 없습니다. surgeryId=" + surgeryId));
+
+        if (status == SurgeryStatus.COMPLETED
+                && nursingRecordRepository.existsBySurgeryIdAndCountFinalIsNotNullAndCountMatchedFalse(surgeryId)) {
+            throw new BusinessException("수술 물품 카운트가 일치하지 않습니다. 재확인(X-ray 등) 완료 전까지 수술을 종료할 수 없습니다. (BR-013)");
+        }
 
         surgery.setStatus(status);
         LocalDateTime now = LocalDateTime.now();
