@@ -21,6 +21,8 @@ repositories {
 dependencies {
     // Web MVC (Spring Boot 4.x: spring-boot-starter-web -> spring-boot-starter-webmvc)
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    // Bean Validation (@Valid, jakarta.validation.constraints.*) - DTO 요청값 검증용
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     // MyBatis (메뉴 등 XML SQL 매퍼)
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.1'
     // JPA (엔티티 기반 ORM)

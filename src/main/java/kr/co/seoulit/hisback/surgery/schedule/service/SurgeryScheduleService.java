@@ -36,11 +36,11 @@ public class SurgeryScheduleService {
 
     /** 수술 스케줄 신규 등록 (SL2-36 / API-SUR-001) */
     public SurgeryDto register(SurgeryDto dto) {
-        validateScheduleConflict(dto.getOperatingRoom(), dto.getScheduledDt(), null);
+        validateScheduleConflict(dto.getRoomCode(), dto.getScheduledAt(), null);
         Surgery saved = surgeryRepository.save(dto.toEntity());
         notifyWard(saved);
-        log.info("수술 스케줄 등록: surgeryId={}, room={}, scheduledDt={}",
-                saved.getSurgeryId(), saved.getOperatingRoom(), saved.getScheduledDt());
+        log.info("수술 스케줄 등록: surgeryId={}, room={}, scheduledAt={}",
+                saved.getSurgeryId(), saved.getRoomCode(), saved.getScheduledAt());
         return SurgeryDto.from(saved);
     }
 
@@ -50,7 +50,7 @@ public class SurgeryScheduleService {
         entity.setEmergency(true);
         Surgery saved = surgeryRepository.save(entity);
         notifyWard(saved);
-        log.info("응급 수술 등록: surgeryId={}, room={}", saved.getSurgeryId(), saved.getOperatingRoom());
+        log.info("응급 수술 등록: surgeryId={}, room={}", saved.getSurgeryId(), saved.getRoomCode());
         return SurgeryDto.from(saved);
     }
 
@@ -59,36 +59,39 @@ public class SurgeryScheduleService {
     public List<SurgeryDto> getSchedules(LocalDate date) {
         List<Surgery> surgeries = (date == null)
                 ? surgeryRepository.findAll()
-                : surgeryRepository.findByScheduledDtBetweenOrderByScheduledDtAsc(
+                : surgeryRepository.findByScheduledAtBetweenOrderByScheduledAtAsc(
                         date.atStartOfDay(), date.atTime(LocalTime.MAX));
         return surgeries.stream().map(SurgeryDto::from).toList();
     }
 
     /** 수술 일정 단건 조회 */
     @Transactional(readOnly = true)
-    public SurgeryDto getSchedule(Long surgeryId) {
+    public SurgeryDto getSchedule(String surgeryId) {
         return SurgeryDto.from(findOrThrow(surgeryId));
     }
 
     /** 수술 일정 수정 (SL2-37) */
-    public SurgeryDto update(Long surgeryId, SurgeryDto dto) {
+    public SurgeryDto update(String surgeryId, SurgeryDto dto) {
         Surgery surgery = findOrThrow(surgeryId);
         if (surgery.getStatus() != null && surgery.getStatus().isTerminal()) {
             throw new BusinessException("완료/취소된 수술은 수정할 수 없습니다.");
         }
         if (!surgery.isEmergency()) {
-            validateScheduleConflict(dto.getOperatingRoom(), dto.getScheduledDt(), surgeryId);
+            validateScheduleConflict(dto.getRoomCode(), dto.getScheduledAt(), surgeryId);
         }
-        surgery.setOperatingRoom(dto.getOperatingRoom());
+        surgery.setRoomCode(dto.getRoomCode());
         surgery.setSurgeonId(dto.getSurgeonId());
         surgery.setAnesthesiologistId(dto.getAnesthesiologistId());
         surgery.setSurgeryName(dto.getSurgeryName());
-        surgery.setScheduledDt(dto.getScheduledDt());
+        surgery.setScheduledAt(dto.getScheduledAt());
         return SurgeryDto.from(surgery);
     }
 
-    /** 수술 일정 취소 (SL2-33) — 상태를 취소됨으로 전이한다. */
-    public void cancel(Long surgeryId) {
+    /**
+     * 수술 일정 취소 (SL2-33)
+     * <p>물리 삭제가 아닌 상태를 취소됨으로 전이한다 (개발표준가이드 §14 취지).</p>
+     */
+    public void cancel(String surgeryId) {
         Surgery surgery = findOrThrow(surgeryId);
         if (surgery.getStatus() == SurgeryStatus.COMPLETED) {
             throw new BusinessException("이미 완료된 수술은 취소할 수 없습니다.");
@@ -97,7 +100,7 @@ public class SurgeryScheduleService {
         log.info("수술 취소: surgeryId={}", surgeryId);
     }
 
-    private Surgery findOrThrow(Long surgeryId) {
+    private Surgery findOrThrow(String surgeryId) {
         return surgeryRepository.findById(surgeryId)
                 .orElseThrow(() -> new BusinessException("수술 정보를 찾을 수 없습니다. surgeryId=" + surgeryId));
     }
@@ -108,21 +111,21 @@ public class SurgeryScheduleService {
      *
      * @param excludeSurgeryId 수정 시 자기 자신은 검사에서 제외 (신규 등록이면 null)
      */
-    private void validateScheduleConflict(String operatingRoom, LocalDateTime scheduledDt, Long excludeSurgeryId) {
-        if (operatingRoom == null || scheduledDt == null) {
+    private void validateScheduleConflict(String roomCode, LocalDateTime scheduledAt, String excludeSurgeryId) {
+        if (roomCode == null || scheduledAt == null) {
             return;
         }
         boolean conflict = surgeryRepository
-                .findByOperatingRoomAndScheduledDtBetween(
-                        operatingRoom,
-                        scheduledDt.minusHours(CONFLICT_WINDOW_HOURS),
-                        scheduledDt.plusHours(CONFLICT_WINDOW_HOURS))
+                .findByRoomCodeAndScheduledAtBetween(
+                        roomCode,
+                        scheduledAt.minusHours(CONFLICT_WINDOW_HOURS),
+                        scheduledAt.plusHours(CONFLICT_WINDOW_HOURS))
                 .stream()
                 .filter(s -> s.getStatus() != SurgeryStatus.CANCELLED)
                 .anyMatch(s -> !s.getSurgeryId().equals(excludeSurgeryId));
         if (conflict) {
             throw new BusinessException(
-                    "해당 수술실(" + operatingRoom + ")의 요청 시간대에 이미 배정된 수술이 있습니다. 다른 시간/수술실을 선택하세요.");
+                    "해당 수술실(" + roomCode + ")의 요청 시간대에 이미 배정된 수술이 있습니다. 다른 시간/수술실을 선택하세요.");
         }
     }
 
@@ -130,7 +133,7 @@ public class SurgeryScheduleService {
     private void notifyWard(Surgery surgery) {
         try {
             wardServiceClient.notifySurgeryScheduled(
-                    surgery.getSurgeryId(), surgery.getPatientMpiId(), surgery.getScheduledDt());
+                    surgery.getSurgeryId(), surgery.getPatientMpiId(), surgery.getScheduledAt());
         } catch (Exception e) {
             log.warn("병동관리 통보 실패(무시하고 진행): surgeryId={}, cause={}",
                     surgery.getSurgeryId(), e.getMessage());

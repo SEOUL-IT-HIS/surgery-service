@@ -5,8 +5,8 @@ import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -51,19 +51,23 @@ public class SurgeryScheduleController {
 
     /** 수술 일정 단건 조회 */
     @GetMapping("/{surgeryId}")
-    public ApiResponse<SurgeryDto> get(@PathVariable Long surgeryId) {
+    public ApiResponse<SurgeryDto> get(@PathVariable String surgeryId) {
         return ApiResponse.ok(surgeryScheduleService.getSchedule(surgeryId));
     }
 
     /** 수술 일정 수정 (SL2-37) */
     @PutMapping("/{surgeryId}")
-    public ApiResponse<SurgeryDto> update(@PathVariable Long surgeryId, @RequestBody SurgeryDto dto) {
+    public ApiResponse<SurgeryDto> update(@PathVariable String surgeryId, @RequestBody SurgeryDto dto) {
         return ApiResponse.ok("수술 스케줄이 수정되었습니다.", surgeryScheduleService.update(surgeryId, dto));
     }
 
-    /** 수술 일정 취소 (SL2-33) */
-    @DeleteMapping("/{surgeryId}")
-    public ApiResponse<Void> cancel(@PathVariable Long surgeryId) {
+    /**
+     * 수술 일정 취소 (SL2-33)
+     * <p>물리 DELETE 대신 상태 전이(PATCH .../cancel)로 처리한다.
+     * (개발표준가이드 §14 취지: 이력 보존을 위해 물리 삭제 지양)</p>
+     */
+    @PatchMapping("/{surgeryId}/cancel")
+    public ApiResponse<Void> cancel(@PathVariable String surgeryId) {
         surgeryScheduleService.cancel(surgeryId);
         return ApiResponse.ok("수술 스케줄이 취소되었습니다.", null);
     }
