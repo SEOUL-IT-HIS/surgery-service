@@ -30,7 +30,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Builder
 public class OperatingRoom {
 
-    /** PK. 서버가 채번하지 않고 클라이언트가 지정한 코드를 그대로 저장한다. */
+    // PK(room_code)는 서버가 채번하지 않고 클라이언트에서 지정한 코드를 그대로 저장한다
     @Id
     @Column(name = "room_code", length = 36, nullable = false)
     private String roomCode;
@@ -38,11 +38,11 @@ public class OperatingRoom {
     @Column(name = "room_name", length = 100, nullable = false)
     private String roomName;
 
-    /** OR_STATUS_CD: 01사용가능/02사용중/03점검중/04폐쇄 */
+    // OR_STATUS_CD: 01사용가능/02사용중/03점검중/04폐쇄
     @Column(name = "status_cd", length = 36)
     private String statusCd;
 
-    /** TURNOVER_CD: 01정리중/02준비완료 (SL2-50 턴오버타임 관리) */
+    // TURNOVER_CD: 01정리중/02준비완료 (SL2-50 턴오버타임 관리)
     @Column(name = "turnover_cd", length = 36)
     private String turnoverCd;
 
