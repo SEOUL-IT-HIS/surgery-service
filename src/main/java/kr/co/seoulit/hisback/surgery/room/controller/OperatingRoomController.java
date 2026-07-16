@@ -1,7 +1,56 @@
 package kr.co.seoulit.hisback.surgery.room.controller;
 
+import java.util.List;
+import java.util.Map;
+import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
+import kr.co.seoulit.hisback.surgery.room.dto.OperatingRoomDto;
+import kr.co.seoulit.hisback.surgery.room.service.OperatingRoomService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 /**
- * 수술실 관리 컨트롤러 (SL2-6 조회 / SL2-7 추가 / SL2-8 제거 / SL2-30 정보수정)
+ * 수술실 관리 컨트롤러 (SL2-6 조회 / SL2-7 추가 / SL2-30 정보수정 / SL2-8 상태변경)
+ * <p>프론트 api.ts(hisfrontend/src/features/surgery/api.ts)의 getRooms/createRoom/
+ * updateRoom/changeRoomStatus 호출 경로와 1:1로 맞췄다. 응답은 가이드 §11.3에 따라
+ * ApiResponse&lt;T&gt;(code/message/data)로 감싸고, 예외는 GlobalExceptionHandler가
+ * 공통으로 code/message를 채워 처리한다(§11.5) — 여기서는 try/catch를 직접 하지 않는다.</p>
  */
+@RestController
+@RequestMapping("/api/v1/surgery/rooms")
 public class OperatingRoomController {
+
+    private final OperatingRoomService operatingRoomService;
+
+    public OperatingRoomController(OperatingRoomService operatingRoomService) {
+        this.operatingRoomService = operatingRoomService;
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<OperatingRoomDto>>> getRooms() {
+        return ResponseEntity.ok(ApiResponse.success(operatingRoomService.getOperatingRooms()));
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<OperatingRoomDto>> createRoom(
+            @RequestBody OperatingRoomDto request) {
+        OperatingRoomDto created = operatingRoomService.createOperatingRoom(request);
+        return ResponseEntity.status(201).body(ApiResponse.success(201, created));
+    }
+
+    @PutMapping("/{roomCode}")
+    public ResponseEntity<ApiResponse<OperatingRoomDto>> updateRoom(
+            @PathVariable String roomCode, @RequestBody OperatingRoomDto request) {
+        return ResponseEntity.ok(
+                ApiResponse.success(operatingRoomService.updateOperatingRoom(roomCode, request)));
+    }
+
+    /** SL2-8: 물리 삭제 대신 상태 전이(주로 CLOSED)로 "제거"를 표현한다. */
+    @PatchMapping("/{roomCode}/status")
+    public ResponseEntity<ApiResponse<OperatingRoomDto>> changeRoomStatus(
+            @PathVariable String roomCode, @RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        operatingRoomService.changeOperatingRoomStatus(
+                                roomCode, request.get("statusCd"))));
+    }
 }
