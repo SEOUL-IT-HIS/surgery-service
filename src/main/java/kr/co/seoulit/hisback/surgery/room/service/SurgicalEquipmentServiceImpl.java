@@ -21,9 +21,12 @@ public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
         this.surgicalEquipmentRepository = surgicalEquipmentRepository;
     }
 
+    /** 목록 조회는 상태와 무관하게 전체를 반환한다(Room.getOperatingRooms()와 동형).
+     *  사용가능한 장비만 보고 싶으면 별도 조회가 필요하면 findByStatusCd("01")을 쓰는 메서드를
+     *  추가하면 된다 — Room 쪽 getAvailableOperatingRooms()와 동일 패턴. */
     @Override
     public List<SurgicalEquipmentDto> getSurgicalEquipments() {
-        return surgicalEquipmentRepository.findByStatusCd("01").stream()
+        return surgicalEquipmentRepository.findAll().stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -32,6 +35,7 @@ public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
     public SurgicalEquipmentDto createSurgicalEquipment(SurgicalEquipmentDto request) {
         SurgicalEquipment equipment = SurgicalEquipment.builder()
                 .equipmentId(request.getEquipmentId())
+                .roomCode(request.getRoomCode())
                 .equipmentName(request.getEquipmentName())
                 .statusCd(request.getStatusCd())
                 .inoutCd(request.getInoutCd())
@@ -69,6 +73,7 @@ public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
     private SurgicalEquipmentDto toDto(SurgicalEquipment equipment) {
         return new SurgicalEquipmentDto(
                 equipment.getEquipmentId(),
+                equipment.getRoomCode(),
                 equipment.getEquipmentName(),
                 equipment.getStatusCd(),
                 equipment.getInoutCd(),

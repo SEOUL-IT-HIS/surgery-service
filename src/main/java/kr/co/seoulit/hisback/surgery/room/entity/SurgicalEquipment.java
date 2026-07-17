@@ -15,14 +15,14 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 /**
  * 수술장비 엔티티
- * <p>OperatingRoom(SURGERY_ROOM)과 동일한 매핑 규약을 따른다. 물리 테이블명을 명시하지 않으면
- * Hibernate가 클래스명을 스네이크케이스로 변환한 별개 테이블(surgical_equipment)을 만들 수 있고,
- * {@code spring.jpa.hibernate.ddl-auto=update} 설정 탓에 의도치 않은 테이블이 생성되므로
- * {@code @Table(name = "SURGERY_EQUIPMENT")}로 명시 매핑한다.</p>
+ * <p>OperatingRoom(SURGERY_ROOM)과 동일한 매핑 규약을 따른다. DDL(surgery_service_ddl_v4.sql)의
+ * 실제 물리 테이블명은 SURGICAL_EQUIPMENT 이다 — {@code @Table(name = "SURGERY_EQUIPMENT")}로
+ * 매핑돼 있으면 이름이 한 글자 다르므로(SURGERY_EQUIPMENT vs SURGICAL_EQUIPMENT) OperatingRoom과
+ * 똑같은 문제가 재발한다: Hibernate가 엉뚱한 테이블을 새로 만들어버린다.</p>
  */
 
 @Entity
-@Table(name = "SURGERY_EQUIPMENT")
+@Table(name = "SURGICAL_EQUIPMENT")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -34,6 +34,10 @@ public class SurgicalEquipment {
     @Id
     @Column(name = "equipment_id", length = 36, nullable = false)
     private String equipmentId;
+
+    // FK -> SURGERY_ROOM.room_code (DDL상 NOT NULL). 어느 수술실 소속 장비인지 나타낸다.
+    @Column(name = "room_code", length = 36, nullable = false)
+    private String roomCode;
 
     @Column(name = "equipment_name", length = 100, nullable = false)
     private String equipmentName;

@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SurgicalEquipmentDto {
     private String equipmentId;
+    private String roomCode;
     private String equipmentName;
     private String statusCd;
     private String inoutCd;
