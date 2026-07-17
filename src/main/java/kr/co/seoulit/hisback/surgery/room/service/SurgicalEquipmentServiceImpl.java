@@ -1,11 +1,13 @@
 package kr.co.seoulit.hisback.surgery.room.service;
 
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
+import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
 import kr.co.seoulit.hisback.surgery.room.dto.SurgicalEquipmentDto;
 import kr.co.seoulit.hisback.surgery.room.entity.SurgicalEquipment;
 import kr.co.seoulit.hisback.surgery.room.repository.SurgicalEquipmentRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -21,14 +23,24 @@ public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
         this.surgicalEquipmentRepository = surgicalEquipmentRepository;
     }
 
-    /** 목록 조회는 상태와 무관하게 전체를 반환한다(Room.getOperatingRooms()와 동형).
-     *  사용가능한 장비만 보고 싶으면 별도 조회가 필요하면 findByStatusCd("01")을 쓰는 메서드를
-     *  추가하면 된다 — Room 쪽 getAvailableOperatingRooms()와 동일 패턴. */
+    /** 목록 조회는 상태와 무관하게 전체를 페이지 단위로 반환한다(Room.getOperatingRooms()와 동형).
+     *  사용가능한 장비만 보고 싶으면 findByStatusCd("01")을 쓰는 메서드를 추가하면 된다 —
+     *  Room 쪽 getAvailableOperatingRooms()와 동일 패턴. (SL2-110: page/size/sort) */
     @Override
-    public List<SurgicalEquipmentDto> getSurgicalEquipments() {
-        return surgicalEquipmentRepository.findAll().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+    public PageResponse<SurgicalEquipmentDto> getSurgicalEquipments(Pageable pageable) {
+        Page<SurgicalEquipment> result = surgicalEquipmentRepository.findAll(pageable);
+        return new PageResponse<>(
+                result.getContent().stream().map(this::toDto).collect(Collectors.toList()),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages());
+    }
+
+    // SL2-87: 장비 ID로 단건 상세 조회
+    @Override
+    public SurgicalEquipmentDto getSurgicalEquipmentfindById(String equipmentId) {
+        return toDto(findEquipmentOrThrow(equipmentId));
     }
 
     @Override

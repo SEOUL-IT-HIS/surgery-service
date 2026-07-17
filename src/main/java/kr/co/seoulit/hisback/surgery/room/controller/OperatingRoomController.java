@@ -3,8 +3,12 @@ package kr.co.seoulit.hisback.surgery.room.controller;
 import java.util.List;
 import java.util.Map;
 import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
+import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
 import kr.co.seoulit.hisback.surgery.room.dto.OperatingRoomDto;
 import kr.co.seoulit.hisback.surgery.room.service.OperatingRoomService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,10 +29,17 @@ public class OperatingRoomController {
         this.operatingRoomService = operatingRoomService;
     }
 
-    //getRooms는 GET 요청을 받아 OperatingRoomService에 전달(위임) 하고, Service에서 받아온 결과를 ApiResponse로 감싸 반환한다
+    //getRooms는 GET 전체 요청을 받아 페이지 단위로 OperatingRoomService에 전달(위임) 하고,
+    //Service에서 받아온 결과를 ApiResponse로 감싸 반환한다 (SL2-100: page/size/sort)
     @GetMapping
-    public ResponseEntity<ApiResponse<List<OperatingRoomDto>>> getRooms() {
-        return ResponseEntity.ok(ApiResponse.success(operatingRoomService.getOperatingRooms()));
+    public ResponseEntity<ApiResponse<PageResponse<OperatingRoomDto>>> getRooms(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort) {
+        Pageable pageable = (sort != null && !sort.isBlank())
+                ? PageRequest.of(page, size, Sort.by(sort))
+                : PageRequest.of(page, size);
+        return ResponseEntity.ok(ApiResponse.success(operatingRoomService.getOperatingRooms(pageable)));
     }
 
     //getAvailableRooms는 사용 가능(status_cd=01)한 수술실만 조회해 ApiResponse로 감싸 반환한다
@@ -36,6 +47,14 @@ public class OperatingRoomController {
     public ResponseEntity<ApiResponse<List<OperatingRoomDto>>> getAvailableRooms() {
         return ResponseEntity.ok(
                 ApiResponse.success(operatingRoomService.getAvailableOperatingRooms()));
+    }
+
+    //getRoom은 수술실 코드로 특정 수술실을 조회한다
+    @GetMapping("/{roomCode}")
+    public ResponseEntity<ApiResponse<OperatingRoomDto>> getRoom(@PathVariable String roomCode) {
+        return ResponseEntity.ok(
+                ApiResponse.success(operatingRoomService.getOperatingRoomfindById(roomCode))
+        );
     }
 
     //createRoom은 POST 요청을 받아 OperatingRoomService에 전달(위임) 하고, Service에서 받아온 결과를 ApiResponse로 감싸 반환한다
@@ -64,4 +83,6 @@ public class OperatingRoomController {
                         operatingRoomService.changeOperatingRoomStatus(
                                 roomCode, request.get("statusCd"))));
     }
+
+
 }

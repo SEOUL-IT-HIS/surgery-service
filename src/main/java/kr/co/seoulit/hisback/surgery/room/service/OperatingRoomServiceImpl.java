@@ -3,9 +3,12 @@ package kr.co.seoulit.hisback.surgery.room.service;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
+import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
 import kr.co.seoulit.hisback.surgery.room.dto.OperatingRoomDto;
 import kr.co.seoulit.hisback.surgery.room.entity.OperatingRoom;
 import kr.co.seoulit.hisback.surgery.room.repository.OperatingRoomRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -25,11 +28,23 @@ public class OperatingRoomServiceImpl implements OperatingRoomService {
         this.operatingRoomRepository = operatingRoomRepository;
     }
 
+    // SL2-100: page/size/sort는 컨트롤러가 Pageable로 조립해 넘긴다. Repository는 JpaRepository를
+    // 상속하고 있어 findAll(Pageable)이 기본 제공되므로 별도 쿼리 메서드 없이 그대로 쓴다.
     @Override
-    public List<OperatingRoomDto> getOperatingRooms() {
-        return operatingRoomRepository.findAll().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+    public PageResponse<OperatingRoomDto> getOperatingRooms(Pageable pageable) {
+        Page<OperatingRoom> result = operatingRoomRepository.findAll(pageable);
+        return new PageResponse<>(
+                result.getContent().stream().map(this::toDto).collect(Collectors.toList()),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages());
+    }
+
+    // SL2-76: 수술실 코드로 단건 상세 조회
+    @Override
+    public OperatingRoomDto getOperatingRoomfindById(String roomCode) {
+        return toDto(findRoomOrThrow(roomCode));
     }
 
     @Override
