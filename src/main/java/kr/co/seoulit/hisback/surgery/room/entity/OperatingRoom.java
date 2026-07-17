@@ -21,6 +21,7 @@ import org.hibernate.annotations.UpdateTimestamp;
  * application.properties의 {@code spring.jpa.hibernate.ddl-auto=update} 설정 때문에
  * 없는 테이블을 새로 만들어버려 기존 SURGERY_ROOM 데이터와 완전히 어긋나게 된다.</p>
  */
+
 @Entity
 @Table(name = "SURGERY_ROOM")
 @Getter

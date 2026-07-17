@@ -23,7 +23,7 @@ public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
 
     @Override
     public List<SurgicalEquipmentDto> getSurgicalEquipments() {
-        return surgicalEquipmentRepository.findAll().stream()
+        return surgicalEquipmentRepository.findByStatusCd("01").stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -53,7 +53,7 @@ public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
         return toDto(equipment);
     }
 
-    /** SL2-12 출고반입: inout_cd 상태 전이 (OperatingRoom changeOperatingRoomStatus와 동형) */
+    // SL2-12 출고반입: inout_cd 상태 전이 (OperatingRoom changeOperatingRoomStatus와 동형)
     @Override
     public SurgicalEquipmentDto changeInoutStatus(String equipmentId, String inoutCd) {
         SurgicalEquipment equipment = findEquipmentOrThrow(equipmentId);

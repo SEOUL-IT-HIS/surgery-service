@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class OperatingRoomServiceImpl implements OperatingRoomService {
 
+    /** OR_STATUS_CD 01=사용가능 (02사용중/03점검중/04폐쇄) */
+    private static final String STATUS_AVAILABLE = "01";
+
     private final OperatingRoomRepository operatingRoomRepository;
 
     public OperatingRoomServiceImpl(OperatingRoomRepository operatingRoomRepository) {
@@ -25,6 +28,13 @@ public class OperatingRoomServiceImpl implements OperatingRoomService {
     @Override
     public List<OperatingRoomDto> getOperatingRooms() {
         return operatingRoomRepository.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<OperatingRoomDto> getAvailableOperatingRooms() {
+        return operatingRoomRepository.findByStatusCd(STATUS_AVAILABLE).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }

@@ -20,6 +20,7 @@ import org.hibernate.annotations.UpdateTimestamp;
  * {@code spring.jpa.hibernate.ddl-auto=update} 설정 탓에 의도치 않은 테이블이 생성되므로
  * {@code @Table(name = "SURGERY_EQUIPMENT")}로 명시 매핑한다.</p>
  */
+
 @Entity
 @Table(name = "SURGERY_EQUIPMENT")
 @Getter

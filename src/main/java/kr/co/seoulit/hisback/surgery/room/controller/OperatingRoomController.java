@@ -31,6 +31,13 @@ public class OperatingRoomController {
         return ResponseEntity.ok(ApiResponse.success(operatingRoomService.getOperatingRooms()));
     }
 
+    //getAvailableRooms는 사용 가능(status_cd=01)한 수술실만 조회해 ApiResponse로 감싸 반환한다
+    @GetMapping("/available")
+    public ResponseEntity<ApiResponse<List<OperatingRoomDto>>> getAvailableRooms() {
+        return ResponseEntity.ok(
+                ApiResponse.success(operatingRoomService.getAvailableOperatingRooms()));
+    }
+
     //createRoom은 POST 요청을 받아 OperatingRoomService에 전달(위임) 하고, Service에서 받아온 결과를 ApiResponse로 감싸 반환한다
     @PostMapping
     public ResponseEntity<ApiResponse<OperatingRoomDto>> createRoom(

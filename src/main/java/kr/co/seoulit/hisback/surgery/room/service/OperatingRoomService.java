@@ -10,6 +10,9 @@ import kr.co.seoulit.hisback.surgery.room.dto.OperatingRoomDto;
 public interface OperatingRoomService {
     List<OperatingRoomDto> getOperatingRooms();
 
+    /** 사용 가능(OR_STATUS_CD=01)한 수술실만 조회한다. */
+    List<OperatingRoomDto> getAvailableOperatingRooms();
+
     OperatingRoomDto createOperatingRoom(OperatingRoomDto request);
 
     OperatingRoomDto updateOperatingRoom(String roomCode, OperatingRoomDto request);
