@@ -26,24 +26,28 @@ public class SurgeryScheduleController {
         this.surgeryScheduleService = surgeryScheduleService;
     }
 
+    //getSchedules는 GET 요청을 받아 SurgeryScheduleService에 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
     @GetMapping
     public ResponseEntity<ApiResponse<List<SurgeryDto>>> getSchedules(
             @RequestParam(required = false) LocalDate date) {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getSchedules(date)));
     }
 
+    //getSchedule은 수술번호를 통해 특정 수술 정보를 조회해 ApiResponse로 반환한다
     @GetMapping("/{surgeryId}")
     public ResponseEntity<ApiResponse<SurgeryDto>> getSchedule(@PathVariable String surgeryId) {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getSchedule(surgeryId)));
     }
 
+    //registerSchedule은 POST 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ResponseEntity로 받아 전달한다
     @PostMapping
     public ResponseEntity<ApiResponse<SurgeryDto>> registerSchedule(@RequestBody SurgeryDto request) {
         SurgeryDto created = surgeryScheduleService.registerSchedule(request);
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));
     }
 
-    /** SL2-44: 응급 수술은 일정 충돌 검사 없이 우선 배정된다. */
+    //registerEmergencySchedule은 POST 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
+    // SL2-44: 응급 수술은 일정 충돌 검사 없이 우선 배정된다
     @PostMapping("/emergency")
     public ResponseEntity<ApiResponse<SurgeryDto>> registerEmergencySchedule(
             @RequestBody SurgeryDto request) {
@@ -51,6 +55,7 @@ public class SurgeryScheduleController {
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));
     }
 
+    //updateSchedule은 PUT 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
     @PutMapping("/{surgeryId}")
     public ResponseEntity<ApiResponse<SurgeryDto>> updateSchedule(
             @PathVariable String surgeryId, @RequestBody SurgeryDto request) {
@@ -58,7 +63,8 @@ public class SurgeryScheduleController {
                 ApiResponse.success(surgeryScheduleService.updateSchedule(surgeryId, request)));
     }
 
-    /** SL2-33: 물리 삭제 대신 상태 전이(취소)로 표현한다. */
+    //cancelSchedule은 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
+    // SL2-33: 물리 삭제 대신 상태 전이(취소)로 표현한다
     @PatchMapping("/{surgeryId}/cancel")
     public ResponseEntity<ApiResponse<SurgeryDto>> cancelSchedule(
             @PathVariable String surgeryId, @RequestBody(required = false) Map<String, String> request) {
@@ -66,7 +72,8 @@ public class SurgeryScheduleController {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.cancelSchedule(surgeryId, reasonCd)));
     }
 
-    /** SL2-13: 집도의 배정 */
+    //assignSurgeon은 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
+    // SL2-13: 집도의 배정
     @PatchMapping("/{surgeryId}/surgeon")
     public ResponseEntity<ApiResponse<SurgeryDto>> assignSurgeon(
             @PathVariable String surgeryId, @RequestBody Map<String, String> request) {
@@ -74,7 +81,8 @@ public class SurgeryScheduleController {
                 ApiResponse.success(surgeryScheduleService.assignSurgeon(surgeryId, request.get("surgeonId"))));
     }
 
-    /** SL2-15: 수술실 배정 */
+    //assignRoom은 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
+    // SL2-15: 수술실 배정
     @PatchMapping("/{surgeryId}/room")
     public ResponseEntity<ApiResponse<SurgeryDto>> assignRoom(
             @PathVariable String surgeryId, @RequestBody Map<String, String> request) {
@@ -82,7 +90,8 @@ public class SurgeryScheduleController {
                 ApiResponse.success(surgeryScheduleService.assignRoom(surgeryId, request.get("roomCode"))));
     }
 
-    /** SL2-43: 마취의 배정 */
+    //assignAnesthesiologist는 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
+    // SL2-43: 마취의 배정
     @PatchMapping("/{surgeryId}/anesthesiologist")
     public ResponseEntity<ApiResponse<SurgeryDto>> assignAnesthesiologist(
             @PathVariable String surgeryId, @RequestBody Map<String, String> request) {
@@ -92,7 +101,8 @@ public class SurgeryScheduleController {
                                 surgeryId, request.get("anesthesiologistId"))));
     }
 
-    /** SL2-63: 간호사 배정 */
+    //assignNurse는 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
+    // SL2-63: 간호사 배정
     @PatchMapping("/{surgeryId}/nurse")
     public ResponseEntity<ApiResponse<SurgeryDto>> assignNurse(
             @PathVariable String surgeryId, @RequestBody Map<String, String> request) {
@@ -100,13 +110,15 @@ public class SurgeryScheduleController {
                 ApiResponse.success(surgeryScheduleService.assignNurse(surgeryId, request.get("nurseId"))));
     }
 
-    /** SL2-40: 금일 수술현황 대시보드 */
+    //getTodaySchedules는 GET 요청을 받아 금일 수술 목록을 조회해 ApiResponse로 받아 전달한다
+    // SL2-40: 금일 수술현황 대시보드
     @GetMapping("/today")
     public ResponseEntity<ApiResponse<List<SurgeryDto>>> getTodaySchedules() {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getTodaySchedules()));
     }
 
-    /** SL2-39: 당일 실시간 진행상태 변경 (status_cd와 별도 트랙) */
+    //updateProgress는 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
+    // SL2-39: 당일 실시간 진행상태 변경 (status_cd와 별도 트랙)
     @PatchMapping("/{surgeryId}/progress")
     public ResponseEntity<ApiResponse<SurgeryDto>> updateProgress(
             @PathVariable String surgeryId, @RequestBody Map<String, String> request) {
