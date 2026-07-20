@@ -60,11 +60,14 @@ public class SurgicalEquipmentController {
         return ResponseEntity.ok(ApiResponse.success(updated));
     }
 
-    //deleteEquipment는 DELETE 요청을 받아 SurgicalEquipmentService에 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 감싸 반환한다
-    @DeleteMapping("/{equipmentId}")
-    public ResponseEntity<ApiResponse<Void>> deleteEquipment(@PathVariable String equipmentId) {
-        surgicalEquipmentService.deleteSurgicalEquipment(equipmentId);
-        return ResponseEntity.ok(ApiResponse.success(null));
+    //SL2-11 수술장비 제거: 개발표준가이드 §21.6/§21.8("삭제보다 상태 변경 우선")에 따라
+    //물리 DELETE가 아니라 status_cd 상태 전이(PATCH)로 "제거"를 표현한다(OperatingRoom 상태변경과 동형).
+    @PatchMapping("/{equipmentId}/status")
+    public ResponseEntity<ApiResponse<SurgicalEquipmentDto>> changeEquipmentStatus(
+            @PathVariable String equipmentId, @RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        surgicalEquipmentService.changeEquipmentStatus(equipmentId, request.get("statusCd"))));
     }
 
     //SL2-12: 출고/반입은 물리 변경이 아니라 inout_cd 상태 전이로 표현한다(OperatingRoom 상태변경과 동형)

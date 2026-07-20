@@ -15,7 +15,11 @@ public interface SurgicalEquipmentService {
 
     SurgicalEquipmentDto updateSurgicalEquipment(String surgicalEquipmentId, SurgicalEquipmentDto request);
 
-    SurgicalEquipmentDto deleteSurgicalEquipment(String surgicalEquipmentId);
+    /**
+     * SL2-11 수술장비 제거: 개발표준가이드 §21.6/§21.8("삭제보다 상태 변경 우선")에 따라
+     * 물리 삭제 대신 status_cd 상태 전이로 "제거"를 표현한다(OperatingRoom changeOperatingRoomStatus와 동형).
+     */
+    SurgicalEquipmentDto changeEquipmentStatus(String equipmentId, String statusCd);
 
     //SL2-12 출고반입: inout_cd 상태 전이 (OperatingRoom changeOperatingRoomStatus와 동형)
     SurgicalEquipmentDto changeInoutStatus(String equipmentId, String inoutCd);

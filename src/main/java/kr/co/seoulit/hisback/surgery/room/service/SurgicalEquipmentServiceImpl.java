@@ -62,11 +62,14 @@ public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
         return toDto(surgicalEquipmentRepository.save(equipment));
     }
 
+    // SL2-11 수술장비 제거: 개발표준가이드 §21.6/§21.8("삭제보다 상태 변경 우선")에 따라
+    // 물리 삭제(repository.delete) 대신 status_cd 상태 전이로 "제거"를 표현한다.
+    // (기존에는 물리 삭제였으나 가이드 위반이라 상태 전이로 교체 — OperatingRoom SL2-8과 동형)
     @Override
-    public SurgicalEquipmentDto deleteSurgicalEquipment(String surgicalEquipmentId) {
-        SurgicalEquipment equipment = findEquipmentOrThrow(surgicalEquipmentId);
-        surgicalEquipmentRepository.delete(equipment);
-        return toDto(equipment);
+    public SurgicalEquipmentDto changeEquipmentStatus(String equipmentId, String statusCd) {
+        SurgicalEquipment equipment = findEquipmentOrThrow(equipmentId);
+        equipment.setStatusCd(statusCd);
+        return toDto(surgicalEquipmentRepository.save(equipment));
     }
 
     // SL2-12 출고반입: inout_cd 상태 전이 (OperatingRoom changeOperatingRoomStatus와 동형)
