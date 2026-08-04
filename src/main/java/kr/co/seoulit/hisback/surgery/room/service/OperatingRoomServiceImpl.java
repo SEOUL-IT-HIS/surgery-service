@@ -77,6 +77,22 @@ public class OperatingRoomServiceImpl implements OperatingRoomService {
         return toDto(operatingRoomRepository.save(room));
     }
 
+    /**
+     * SL2-50: 턴오버 상태 변경
+     *
+     * <p>빈 값을 막는 이유 — 프론트 셀렉트의 '미지정' 옵션이 빈 문자열을 보내면 턴오버가
+     * 지워져 정리 진행 상황을 잃는다. 화면에서도 막지만 API 직접 호출까지 고려해 여기서도 검증한다.</p>
+     */
+    @Override
+    public OperatingRoomDto changeOperatingRoomTurnover(String roomCode, String turnoverCd) {
+        if (turnoverCd == null || turnoverCd.isBlank()) {
+            throw new IllegalArgumentException("턴오버 코드는 필수입니다");
+        }
+        OperatingRoom room = findRoomOrThrow(roomCode);
+        room.setTurnoverCd(turnoverCd);
+        return toDto(operatingRoomRepository.save(room));
+    }
+
     private OperatingRoom findRoomOrThrow(String roomCode) {
         return operatingRoomRepository.findById(roomCode)
                 .orElseThrow(() -> new NoSuchElementException("수술실을 찾을 수 없습니다: " + roomCode));

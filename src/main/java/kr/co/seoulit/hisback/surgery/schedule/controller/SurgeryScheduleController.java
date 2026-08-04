@@ -1,5 +1,6 @@
 package kr.co.seoulit.hisback.surgery.schedule.controller;
 
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +40,15 @@ public class SurgeryScheduleController {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getSchedule(surgeryId)));
     }
 
+    // SL2-225: 배정 대기 목록 — 진료·응급실이 요청했으나 아직 수술실이 잡히지 않은 건(응급 우선)
+    @GetMapping("/requests")
+    public ResponseEntity<ApiResponse<List<SurgeryDto>>> getRequestedSchedules() {
+        return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getRequestedSchedules()));
+    }
+
     //registerSchedule은 POST 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ResponseEntity로 받아 전달한다
     @PostMapping
-    public ResponseEntity<ApiResponse<SurgeryDto>> registerSchedule(@RequestBody SurgeryDto request) {
+    public ResponseEntity<ApiResponse<SurgeryDto>> registerSchedule(@Valid @RequestBody SurgeryDto request) {
         SurgeryDto created = surgeryScheduleService.registerSchedule(request);
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));
     }
@@ -50,7 +57,7 @@ public class SurgeryScheduleController {
     // SL2-44: 응급 수술은 일정 충돌 검사 없이 우선 배정된다
     @PostMapping("/emergency")
     public ResponseEntity<ApiResponse<SurgeryDto>> registerEmergencySchedule(
-            @RequestBody SurgeryDto request) {
+            @Valid @RequestBody SurgeryDto request) {
         SurgeryDto created = surgeryScheduleService.registerEmergencySchedule(request);
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));
     }
@@ -58,7 +65,7 @@ public class SurgeryScheduleController {
     //updateSchedule은 PUT 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
     @PutMapping("/{surgeryId}")
     public ResponseEntity<ApiResponse<SurgeryDto>> updateSchedule(
-            @PathVariable String surgeryId, @RequestBody SurgeryDto request) {
+            @PathVariable String surgeryId, @Valid @RequestBody SurgeryDto request) {
         return ResponseEntity.ok(
                 ApiResponse.success(surgeryScheduleService.updateSchedule(surgeryId, request)));
     }
@@ -70,6 +77,21 @@ public class SurgeryScheduleController {
             @PathVariable String surgeryId, @RequestBody(required = false) Map<String, String> request) {
         String reasonCd = request != null ? request.get("cancelReasonCd") : null;
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.cancelSchedule(surgeryId, reasonCd)));
+    }
+
+    // SL2-15: 수술 배정 — 수술실·마취의·간호사를 한 번에 채우고 요청접수→예약으로 전이한다.
+    // 아래 개별 배정 API(/surgeon, /room, ...)는 배정 후 부분 변경용으로 남긴다.
+    @PatchMapping("/{surgeryId}/assign")
+    public ResponseEntity<ApiResponse<SurgeryDto>> assignSurgery(
+            @PathVariable String surgeryId, @RequestBody SurgeryDto request) {
+        return ResponseEntity.ok(
+                ApiResponse.success(surgeryScheduleService.assignSurgery(surgeryId, request)));
+    }
+
+    // 수술 시작 — 예약→진행중 전이 + 실제 시작일 기록. 완료(/end)와 한 쌍이다.
+    @PatchMapping("/{surgeryId}/start")
+    public ResponseEntity<ApiResponse<SurgeryDto>> startSurgery(@PathVariable String surgeryId) {
+        return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.startSurgery(surgeryId)));
     }
 
     //assignSurgeon은 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
@@ -126,8 +148,15 @@ public class SurgeryScheduleController {
                 ApiResponse.success(surgeryScheduleService.updateProgress(surgeryId, request.get("progressCd"))));
     }
 
-    // SL2-72: 수술 완료 처리. status_cd를 03(완료)으로 전이한다. 진행상태(progress_cd)와는 별도 트랙이다.
-    // 수납(Billing) 청구 연계는 아직 붙어 있지 않다 — BillingServiceClient 로 REST 호출할 예정(§21.3).
+    // 수술 종료 — status_cd를 03(완료)으로 전이한다. 진행상태(progress_cd)와는 별도 트랙이다.
+    // 프론트 계약이 /end 라 이쪽을 정식 경로로 둔다. 시작(/start)과 대칭이다.
+    // SL2-72 수납(Billing) 청구 연계는 아직 붙어 있지 않다 — BillingServiceClient 로 REST 호출 예정(§21.3).
+    @PatchMapping("/{surgeryId}/end")
+    public ResponseEntity<ApiResponse<SurgeryDto>> endSurgery(@PathVariable String surgeryId) {
+        return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.completeSurgery(surgeryId)));
+    }
+
+    // 기존 호출부 호환용 별칭. 신규 개발은 /end 를 쓴다.
     @PatchMapping("/{surgeryId}/complete")
     public ResponseEntity<ApiResponse<SurgeryDto>> completeSurgery(@PathVariable String surgeryId) {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.completeSurgery(surgeryId)));

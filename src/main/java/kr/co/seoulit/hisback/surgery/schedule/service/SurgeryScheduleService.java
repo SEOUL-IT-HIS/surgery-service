@@ -36,6 +36,20 @@ public interface SurgeryScheduleService {
     /** SL2-63: 간호사 배정 */
     SurgeryDto assignNurse(String surgeryId, String nurseId);
 
+    /** SL2-225: 배정 대기 목록 (status_cd = 요청접수). 응급 건이 먼저 나온다. */
+    List<SurgeryDto> getRequestedSchedules();
+
+    /**
+     * SL2-15: 수술 배정 — 수술실·마취의·간호사(및 조정 예정일)를 한 번에 채우고 예약으로 전이한다.
+     *
+     * <p>환자·집도의는 요청 주체(진료·응급실)가 확정한 값이라 여기서 바꾸지 않는다.
+     * 개별 배정 API(/surgeon, /room, /anesthesiologist, /nurse)는 배정 후 부분 변경용으로 남는다.</p>
+     */
+    SurgeryDto assignSurgery(String surgeryId, SurgeryDto request);
+
+    /** 수술 시작 — 예약→진행중 전이 + 실제 시작일 기록 */
+    SurgeryDto startSurgery(String surgeryId);
+
     /** SL2-40: 금일 수술현황 대시보드 (스케줄 목록 재사용) */
     List<SurgeryDto> getTodaySchedules();
 
@@ -43,8 +57,10 @@ public interface SurgeryScheduleService {
     SurgeryDto updateProgress(String surgeryId, String progressCd);
 
     /**
-     * SL2-72: 수술을 완료 상태로 전이하고, 수납(Billing)이 구독하는 수술완료 이벤트를 발행한다.
+     * 수술 완료 — 진행중→완료 전이 + 실제 종료일 기록.
      * 물리 삭제가 아닌 상태 전이라 §21.6 원칙에도 부합한다.
+     *
+     * <p>SL2-72(수납 청구 연계)는 아직 붙어 있지 않다 — BillingServiceClient 로 REST 호출 예정(§21.3).</p>
      */
     SurgeryDto completeSurgery(String surgeryId);
 }

@@ -1,5 +1,6 @@
 package kr.co.seoulit.hisback.surgery.room.controller;
 
+import jakarta.validation.Valid;
 import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
 import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
 import kr.co.seoulit.hisback.surgery.room.dto.SurgicalEquipmentDto;
@@ -55,7 +56,7 @@ public class SurgicalEquipmentController {
 
     //updateEquipment는 PUT 요청을 받아 SurgicalEquipmentService에 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 감싸 반환한다
     @PutMapping("/{equipmentId}")
-    public ResponseEntity<ApiResponse<SurgicalEquipmentDto>> updateEquipment(@PathVariable String equipmentId, @RequestBody SurgicalEquipmentDto equipmentDto) {
+    public ResponseEntity<ApiResponse<SurgicalEquipmentDto>> updateEquipment(@PathVariable String equipmentId, @Valid @RequestBody SurgicalEquipmentDto equipmentDto) {
         SurgicalEquipmentDto updated = surgicalEquipmentService.updateSurgicalEquipment(equipmentId, equipmentDto);
         return ResponseEntity.ok(ApiResponse.success(updated));
     }

@@ -93,5 +93,15 @@ public class OperatingRoomController {
                                 roomCode, request.get("statusCd"))));
     }
 
+    // SL2-50: 턴오버 타임 관리 — status_cd 와는 별개 트랙이라 엔드포인트를 나눈다.
+    @PatchMapping("/{roomCode}/turnover")
+    public ResponseEntity<ApiResponse<OperatingRoomDto>> changeRoomTurnover(
+            @PathVariable String roomCode, @RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        operatingRoomService.changeOperatingRoomTurnover(
+                                roomCode, request.get("turnoverCd"))));
+    }
+
 
 }

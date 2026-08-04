@@ -44,6 +44,9 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
+    // Bean Validation (요청 DTO 입력값 검증 — 가이드 §11.5)
+    // 이 의존성이 없으면 @NotBlank 등을 달아도 검증기가 없어 조용히 통과한다.
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 }
 
 tasks.named('test') {

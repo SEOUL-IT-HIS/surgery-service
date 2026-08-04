@@ -1,8 +1,9 @@
 package kr.co.seoulit.hisback.surgery.anesthesia.controller;
 
+import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import kr.co.seoulit.hisback.surgery.anesthesia.dto.AnesthesiaRecordDto;
+import kr.co.seoulit.hisback.surgery.anesthesia.dto.AppendVitalSignsRequest;
 import kr.co.seoulit.hisback.surgery.anesthesia.service.AnesthesiaRecordService;
 import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
 import org.springframework.http.ResponseEntity;
@@ -37,12 +38,15 @@ public class AnesthesiaRecordController {
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));
     }
 
-    /** SL2-18: 활력징후는 CLOB 로그에 이어붙이는 방식이라 PATCH로 처리한다. */
+    /**
+     * SL2-18: 활력징후는 CLOB 로그에 이어붙이는 방식이라 PATCH로 처리한다.
+     * <p>SL2-206: 빈 값이 로그에 섞이지 않도록 전용 요청 DTO 로 필수 검증한다.</p>
+     */
     @PatchMapping("/anesthesia-records/{anesthesiaId}/vital-signs")
     public ResponseEntity<ApiResponse<AnesthesiaRecordDto>> appendVitalSigns(
-            @PathVariable String anesthesiaId, @RequestBody Map<String, String> request) {
+            @PathVariable String anesthesiaId, @Valid @RequestBody AppendVitalSignsRequest request) {
         return ResponseEntity.ok(
                 ApiResponse.success(
-                        anesthesiaRecordService.appendVitalSigns(anesthesiaId, request.get("vitalSignsLog"))));
+                        anesthesiaRecordService.appendVitalSigns(anesthesiaId, request.vitalSignsLog())));
     }
 }

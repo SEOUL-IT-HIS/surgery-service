@@ -23,5 +23,13 @@ public interface OperatingRoomService {
     /** SL2-8: 물리 삭제 대신 상태 전이(주로 CLOSED)로 "제거"를 표현한다. */
     OperatingRoomDto changeOperatingRoomStatus(String roomCode, String statusCd);
 
+    /**
+     * SL2-50: 턴오버 상태 변경 (TURNOVER_CD: 01정리중/02준비완료)
+     *
+     * <p>status_cd(사용가능·점검중·폐쇄)와는 별개 트랙이다. 수술 사이 정리 진행 상황만 나타내므로
+     * 점검중·폐쇄 수술실에는 의미가 없어 호출부에서 막는다.</p>
+     */
+    OperatingRoomDto changeOperatingRoomTurnover(String roomCode, String turnoverCd);
+
     OperatingRoomDto getOperatingRoomfindById(String roomCode);
 }
