@@ -1,10 +1,13 @@
 package kr.co.seoulit.hisback.surgery.schedule.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import kr.co.seoulit.hisback.surgery.global.event.SurgeryCompletedEvent;
+import kr.co.seoulit.hisback.surgery.global.event.SurgeryEventPublisher;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
 import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
@@ -18,12 +21,16 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
 
     /** SURGERY_STATUS_CD: 01예약/02진행중/03완료/04취소 */
     private static final String STATUS_SCHEDULED = "01";
+    private static final String STATUS_COMPLETED = "03";
     private static final String STATUS_CANCELLED = "04";
 
     private final SurgeryRepository surgeryRepository;
+    private final SurgeryEventPublisher surgeryEventPublisher;
 
-    public SurgeryScheduleServiceImpl(SurgeryRepository surgeryRepository) {
+    public SurgeryScheduleServiceImpl(
+            SurgeryRepository surgeryRepository, SurgeryEventPublisher surgeryEventPublisher) {
         this.surgeryRepository = surgeryRepository;
+        this.surgeryEventPublisher = surgeryEventPublisher;
     }
 
     @Override
@@ -116,6 +123,31 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         Surgery surgery = findOrThrow(surgeryId);
         surgery.setProgressCd(progressCd);
         return toDto(surgeryRepository.save(surgery));
+    }
+
+    // SL2-72: 수술 완료 → 수납(Billing) 청구 연계.
+    // DB 저장을 먼저 끝내고 그 다음에 이벤트를 발행한다. 순서를 반대로 하면 저장이 실패했는데
+    // "수술이 완료됐다"는 이벤트만 나가버려 수납 쪽에 유령 청구가 생길 수 있다.
+    @Override
+    public SurgeryDto completeSurgery(String surgeryId) {
+        Surgery surgery = findOrThrow(surgeryId);
+        surgery.setStatusCd(STATUS_COMPLETED);
+        if (surgery.getActualEndDt() == null) {
+            // actual_end_dt는 DDL상 DATE(§14.2 `_dt` = 날짜)라 LocalDate를 쓴다.
+            surgery.setActualEndDt(LocalDate.now());
+        }
+        Surgery saved = surgeryRepository.save(surgery);
+
+        surgeryEventPublisher.publishSurgeryCompleted(
+                new SurgeryCompletedEvent(
+                        saved.getSurgeryId(),
+                        saved.getPatientId(),
+                        saved.getSurgTypeCd(),
+                        saved.getSurgeryName(),
+                        saved.getActualEndDt(),
+                        LocalDateTime.now()));
+
+        return toDto(saved);
     }
 
     private Surgery findOrThrow(String surgeryId) {

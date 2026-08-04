@@ -125,4 +125,11 @@ public class SurgeryScheduleController {
         return ResponseEntity.ok(
                 ApiResponse.success(surgeryScheduleService.updateProgress(surgeryId, request.get("progressCd"))));
     }
+
+    // SL2-72: 수술 완료 처리. status_cd를 03(완료)으로 전이하고 수납(Billing)이 구독하는
+    // 수술완료 이벤트를 Kafka로 발행한다. 진행상태(progress_cd)와는 별도 트랙이다.
+    @PatchMapping("/{surgeryId}/complete")
+    public ResponseEntity<ApiResponse<SurgeryDto>> completeSurgery(@PathVariable String surgeryId) {
+        return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.completeSurgery(surgeryId)));
+    }
 }

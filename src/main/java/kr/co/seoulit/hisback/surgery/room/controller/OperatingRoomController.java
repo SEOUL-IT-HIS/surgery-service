@@ -49,7 +49,16 @@ public class OperatingRoomController {
                 ApiResponse.success(operatingRoomService.getAvailableOperatingRooms()));
     }
 
-    //getRoom은 수술실 코드로 특정 수술실을 조회해 ApiResponse로 반환한다
+    //getRoom은 수술실 코드로 특정 수술@GetMapping
+    //
+    //
+    //    @PostMapping
+    //
+    //
+    //    @PutMapping
+    //
+    //
+    //    @DeleteMapping실을 조회해 ApiResponse로 반환한다
     @GetMapping("/{roomCode}")
     public ResponseEntity<ApiResponse<OperatingRoomDto>> getRoom(@PathVariable String roomCode) {
         return ResponseEntity.ok(

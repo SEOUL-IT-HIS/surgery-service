@@ -41,4 +41,10 @@ public interface SurgeryScheduleService {
 
     /** SL2-39: 당일 실시간 진행상태 변경 (status_cd와 별도 트랙) */
     SurgeryDto updateProgress(String surgeryId, String progressCd);
+
+    /**
+     * SL2-72: 수술을 완료 상태로 전이하고, 수납(Billing)이 구독하는 수술완료 이벤트를 발행한다.
+     * 물리 삭제가 아닌 상태 전이라 §21.6 원칙에도 부합한다.
+     */
+    SurgeryDto completeSurgery(String surgeryId);
 }
