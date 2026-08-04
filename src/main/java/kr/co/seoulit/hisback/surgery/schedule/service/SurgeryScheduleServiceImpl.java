@@ -1,13 +1,10 @@
 package kr.co.seoulit.hisback.surgery.schedule.service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import kr.co.seoulit.hisback.surgery.global.event.SurgeryCompletedEvent;
-import kr.co.seoulit.hisback.surgery.global.event.SurgeryEventPublisher;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
 import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
@@ -25,12 +22,9 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     private static final String STATUS_CANCELLED = "04";
 
     private final SurgeryRepository surgeryRepository;
-    private final SurgeryEventPublisher surgeryEventPublisher;
 
-    public SurgeryScheduleServiceImpl(
-            SurgeryRepository surgeryRepository, SurgeryEventPublisher surgeryEventPublisher) {
+    public SurgeryScheduleServiceImpl(SurgeryRepository surgeryRepository) {
         this.surgeryRepository = surgeryRepository;
-        this.surgeryEventPublisher = surgeryEventPublisher;
     }
 
     @Override
@@ -125,9 +119,15 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         return toDto(surgeryRepository.save(surgery));
     }
 
-    // SL2-72: 수술 완료 → 수납(Billing) 청구 연계.
-    // DB 저장을 먼저 끝내고 그 다음에 이벤트를 발행한다. 순서를 반대로 하면 저장이 실패했는데
-    // "수술이 완료됐다"는 이벤트만 나가버려 수납 쪽에 유령 청구가 생길 수 있다.
+    /**
+     * 수술 완료 처리.
+     *
+     * <p><b>SL2-72(수술 완료 → 수납 청구 연계)는 아직 붙어 있지 않다.</b> 이전에는 이벤트로
+     * 발행했으나 브로커 운영 부담이 프로젝트 규모에 맞지 않아 제거했다. §21.3 이 REST 도
+     * 허용하므로 {@code BillingServiceClient} 로 다시 붙이는 것이 다음 작업이며, 그때도
+     * DB 저장을 먼저 끝내고 호출해야 한다 — 순서를 반대로 하면 저장이 실패했는데
+     * "수술이 완료됐다"는 통보만 나가 수납 쪽에 유령 청구가 생긴다.</p>
+     */
     @Override
     public SurgeryDto completeSurgery(String surgeryId) {
         Surgery surgery = findOrThrow(surgeryId);
@@ -136,18 +136,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
             // actual_end_dt는 DDL상 DATE(§14.2 `_dt` = 날짜)라 LocalDate를 쓴다.
             surgery.setActualEndDt(LocalDate.now());
         }
-        Surgery saved = surgeryRepository.save(surgery);
-
-        surgeryEventPublisher.publishSurgeryCompleted(
-                new SurgeryCompletedEvent(
-                        saved.getSurgeryId(),
-                        saved.getPatientId(),
-                        saved.getSurgTypeCd(),
-                        saved.getSurgeryName(),
-                        saved.getActualEndDt(),
-                        LocalDateTime.now()));
-
-        return toDto(saved);
+        return toDto(surgeryRepository.save(surgery));
     }
 
     private Surgery findOrThrow(String surgeryId) {

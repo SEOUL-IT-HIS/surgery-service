@@ -27,9 +27,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     // MapStruct (DTO <-> Entity 매핑)
     implementation 'org.mapstruct:mapstruct:1.6.3'
-    // Kafka (서비스 간 이벤트 발행 — 가이드 §21.3 "서비스 간 데이터 교환은 REST API 또는 Event")
-    // 버전은 Spring Boot BOM이 관리하므로 명시하지 않는다.
-    implementation 'org.springframework.kafka:spring-kafka'
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     // 개발용 자동 재시작
