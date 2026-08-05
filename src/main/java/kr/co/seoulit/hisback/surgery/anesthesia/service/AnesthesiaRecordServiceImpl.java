@@ -11,7 +11,14 @@ import kr.co.seoulit.hisback.surgery.anesthesia.repository.AnesthesiaRecordRepos
 import org.springframework.stereotype.Service;
 
 /**
- * 마취기록 서비스 구현체
+ * 마취기록 서비스 구현체 (SL2-3)
+ *
+ * <p>수정(update) API 가 없는 이유 — 마취기록은 시술 중 관찰한 사실의 기록이라 덮어쓰지 않는다.
+ * 활력징후는 {@link #appendVitalSigns} 로 <b>덧붙이기만</b> 하고, 이미 적힌 내용은 지우지 않는다.
+ * 진료기록의 성격상 사후 변조 여지를 남기지 않기 위해서다(§21.6).</p>
+ *
+ * <p>한 수술에 마취기록이 여러 건일 수 있어 조회가 목록을 돌려준다. 마취 방식을 도중에
+ * 바꾸면 기록을 새로 남기기 때문이다.</p>
  */
 @Service
 public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
@@ -22,6 +29,7 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
         this.anesthesiaRecordRepository = anesthesiaRecordRepository;
     }
 
+    /** SL2-34: 특정 수술의 마취기록 목록. 수술 존재 여부는 schedule 소관이라 여기서 확인하지 않는다. */
     @Override
     public List<AnesthesiaRecordDto> getAnesthesiaRecords(String surgeryId) {
         return anesthesiaRecordRepository.findBySurgeryId(surgeryId).stream()
@@ -29,6 +37,12 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * SL2-18: 마취기록 생성
+     *
+     * <p>활력징후(vitalSignsLog)를 여기서 받지 않는 이유 — 생성 시점에는 아직 관찰된 값이 없다.
+     * 기록의 껍데기를 먼저 만들고, 이후 appendVitalSigns 로 시간순으로 쌓는다.</p>
+     */
     @Override
     public AnesthesiaRecordDto createAnesthesiaRecord(AnesthesiaRecordDto request) {
         String anesthesiaId =
@@ -43,6 +57,15 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
         return toDto(anesthesiaRecordRepository.save(record));
     }
 
+    /**
+     * SL2-18: 활력징후 기록 추가
+     *
+     * <p>기존 로그 뒤에 <b>줄바꿈으로 이어 붙인다</b> — 덮어쓰지 않는다. 시각을 서버가 찍는
+     * 이유는 클라이언트 시계를 믿을 수 없기 때문이다. 여러 단말에서 기록해도 한 줄기로 정렬된다.</p>
+     *
+     * <p>TODO: 마취기록 전용 NOT_FOUND 에러코드가 없어 NoSuchElementException 을 그대로 던진다.
+     * ErrorCode 에 항목이 추가되면 BusinessException 으로 교체한다(§15.2).</p>
+     */
     @Override
     public AnesthesiaRecordDto appendVitalSigns(String anesthesiaId, String vitalSignsEntry) {
         AnesthesiaRecord record =
@@ -50,12 +73,14 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
                         .findById(anesthesiaId)
                         .orElseThrow(() -> new NoSuchElementException("마취기록을 찾을 수 없습니다: " + anesthesiaId));
         String existing = record.getVitalSignsLog();
+        // 첫 기록이면 앞에 줄바꿈을 넣지 않는다 — 빈 줄로 시작하는 로그를 만들지 않기 위해
         String appended =
                 (existing == null ? "" : existing + "\n") + "[" + LocalDateTime.now() + "] " + vitalSignsEntry;
         record.setVitalSignsLog(appended);
         return toDto(anesthesiaRecordRepository.save(record));
     }
 
+    /** 엔티티 → DTO 변환. 필드명은 프론트 types.ts 의 AnesthesiaRecord 와 1:1로 맞춘다. */
     private AnesthesiaRecordDto toDto(AnesthesiaRecord r) {
         return new AnesthesiaRecordDto(
                 r.getAnesthesiaId(),
