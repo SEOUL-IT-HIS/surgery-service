@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
  * 수술기록 컨트롤러 (SL2-55 작성 / SL2-56 수정 / SL2-57 조회)
  */
 @RestController
-@RequestMapping("/api/v1/surgery")
+@RequestMapping("/api/surgery")
 public class OperativeRecordController {
 
     private final OperativeRecordService operativeRecordService;

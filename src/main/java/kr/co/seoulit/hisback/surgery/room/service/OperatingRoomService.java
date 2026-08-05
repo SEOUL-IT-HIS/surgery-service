@@ -31,5 +31,6 @@ public interface OperatingRoomService {
      */
     OperatingRoomDto changeOperatingRoomTurnover(String roomCode, String turnoverCd);
 
-    OperatingRoomDto getOperatingRoomfindById(String roomCode);
+    /** SL2-76: 수술실 코드로 단건 조회 — 없으면 예외를 던진다(수정 화면 초기값 바인딩용). */
+    OperatingRoomDto getOperatingRoom(String roomCode);
 }

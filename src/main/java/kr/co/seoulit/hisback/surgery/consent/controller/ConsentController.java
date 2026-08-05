@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
  * 동의서 관리 컨트롤러 (SL2-53 동의서 확인 / SL2-54 목록조회)
  */
 @RestController
-@RequestMapping("/api/v1/surgery")
+@RequestMapping("/api/surgery")
 public class ConsentController {
 
     private final ConsentService consentService;

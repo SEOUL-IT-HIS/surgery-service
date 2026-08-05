@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
  * <p>프론트 api.ts의 /schedule 경로와 1:1로 맞췄다. 응답은 §11.3 ApiResponse&lt;T&gt;로 감싼다.</p>
  */
 @RestController
-@RequestMapping("/api/v1/surgery/schedule")
+@RequestMapping("/api/surgery/schedule")
 public class SurgeryScheduleController {
 
     private final SurgeryScheduleService surgeryScheduleService;

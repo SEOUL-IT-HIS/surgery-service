@@ -18,7 +18,7 @@ import java.util.Map;
  */
 
 @RestController
-@RequestMapping("/api/v1/surgery/equipment")
+@RequestMapping("/api/surgery/equipment")
 public class SurgicalEquipmentController {
     private final SurgicalEquipmentService surgicalEquipmentService;
 

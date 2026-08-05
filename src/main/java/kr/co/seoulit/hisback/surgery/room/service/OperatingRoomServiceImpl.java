@@ -43,7 +43,7 @@ public class OperatingRoomServiceImpl implements OperatingRoomService {
 
     // SL2-76: 수술실 코드로 단건 상세 조회
     @Override
-    public OperatingRoomDto getOperatingRoomfindById(String roomCode) {
+    public OperatingRoomDto getOperatingRoom(String roomCode) {
         return toDto(findRoomOrThrow(roomCode));
     }
 

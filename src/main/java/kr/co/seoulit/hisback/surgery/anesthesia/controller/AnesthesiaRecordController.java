@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  * 경로와 맞췄다.</p>
  */
 @RestController
-@RequestMapping("/api/v1/surgery")
+@RequestMapping("/api/surgery")
 public class AnesthesiaRecordController {
 
     private final AnesthesiaRecordService anesthesiaRecordService;

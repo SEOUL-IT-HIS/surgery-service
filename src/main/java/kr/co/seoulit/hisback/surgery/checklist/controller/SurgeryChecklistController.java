@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
  * 수술안전체크리스트 컨트롤러 (SL2-46 SignIn / SL2-47 TimeOut / SL2-48 SignOut / SL2-49 사후수정 / SL2-35 조회)
  */
 @RestController
-@RequestMapping("/api/v1/surgery")
+@RequestMapping("/api/surgery")
 public class SurgeryChecklistController {
 
     private final SurgeryChecklistService surgeryChecklistService;

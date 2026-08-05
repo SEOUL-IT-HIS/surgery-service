@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
  * 공통으로 code/message를 채워 처리한다(§11.5) — 여기서는 try/catch를 직접 하지 않는다.</p>
  */
 @RestController
-@RequestMapping("/api/v1/surgery/rooms")
+@RequestMapping("/api/surgery/rooms")
 public class OperatingRoomController {
 
     private final OperatingRoomService operatingRoomService;
@@ -49,20 +49,11 @@ public class OperatingRoomController {
                 ApiResponse.success(operatingRoomService.getAvailableOperatingRooms()));
     }
 
-    //getRoom은 수술실 코드로 특정 수술@GetMapping
-    //
-    //
-    //    @PostMapping
-    //
-    //
-    //    @PutMapping
-    //
-    //
-    //    @DeleteMapping실을 조회해 ApiResponse로 반환한다
+    //getRoom은 수술실 코드로 특정 수술실을 조회해 ApiResponse로 반환한다
     @GetMapping("/{roomCode}")
     public ResponseEntity<ApiResponse<OperatingRoomDto>> getRoom(@PathVariable String roomCode) {
         return ResponseEntity.ok(
-                ApiResponse.success(operatingRoomService.getOperatingRoomfindById(roomCode))
+                ApiResponse.success(operatingRoomService.getOperatingRoom(roomCode))
         );
     }
 
