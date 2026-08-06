@@ -141,6 +141,4 @@ public class OperatingRoomController {
                         operatingRoomService.changeOperatingRoomTurnover(
                                 roomCode, request.get("turnoverCd"))));
     }
-
-
 }

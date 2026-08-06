@@ -80,8 +80,32 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     @Override
     public SurgeryDto cancelSchedule(String surgeryId, String cancelReasonCd) {
         Surgery surgery = findOrThrow(surgeryId);
+
+        // SL2-178: 취소 가능한 상태인지 먼저 검사한다.
+        //
+        // 허용 목록으로 쓰는 이유 — 나중에 상태가 추가돼도 기본이 '차단'이라 안전하다.
+        // 차단 목록으로 쓰면 새 상태가 생길 때마다 여기에 추가하는 걸 잊기 쉽다.
+        //
+        //   00 요청접수 → 허용 (업무상 '반려')
+        //   01 예약     → 허용 (배정은 됐지만 아직 시작 전)
+        //   02 진행중   → 차단 (환자가 이미 수술대에 있다)
+        //   03 완료     → 차단 (끝난 일)
+        //   04 취소     → 차단 (이미 취소됨)
+        //
+        // 진행중 수술이 실제로 중단되는 경우(환자 상태 악화 등)는 '취소'가 아니라
+        // 별도 상태로 다뤄야 한다 — 여기서 함께 처리하면 통계에서 요청 반려와
+        // 수술 중단이 섞인다. 해당 상태 코드는 아직 정의되지 않았다.
+        if (!SurgeryStatus.REQUESTED.equals(surgery.getStatusCd())
+                && !SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
+            throw new IllegalArgumentException(
+                    "요청접수·예약 상태에서만 취소할 수 있습니다: " + surgery.getStatusCd());
+        }
+
         surgery.setStatusCd(SurgeryStatus.CANCELLED);
         surgery.setCancelReasonCd(cancelReasonCd);
+        // 배정 정보(수술실·집도의·마취의·간호사)는 여기서 지우지 않는다.
+        // 일괄 해제 여부는 SL2-179 에서 별도로 다룬다 — 이력 보존과 자원 반납이
+        // 상충해 판단이 필요하고, 두 필드를 함께 바꾸므로 @Transactional 도 같이 검토해야 한다.
         return toDto(surgeryRepository.save(surgery));
     }
 

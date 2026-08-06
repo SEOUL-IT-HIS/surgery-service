@@ -13,8 +13,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * 수술실 관리 서비스 구현체
- * <p>이름은 XxxServiceImpl, 실제 로직은 여기(class)에 두고 XxxService는 interface로 둔다
- * (기존 코드는 이 둘의 역할이 뒤바뀌어 있었음 — Service가 class, ServiceImpl이 interface).</p>
+ * <p>이름은 XxxServiceImpl, 실제 로직은 여기(class)에 두고 XxxService는 interface로 둔다</p>
  */
 // ─────────────────────────────────────────────────────────────────────────────
 // 이 파일은 서비스 계층의 '대표 예제'다. 다른 ServiceImpl 도 같은 모양이다.
