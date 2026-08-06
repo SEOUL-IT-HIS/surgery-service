@@ -40,7 +40,7 @@ public class AnesthesiaRecord {
     @Column(name = "anesthesia_type_cd", length = 36)
     private String anesthesiaTypeCd;
 
-    // ASA_CD: 01~06 (ASA1~ASA6, SL2-45 마취전평가)
+    // ASA_GRADE_CD: 01~06 (ASA1~ASA6, SL2-45 마취전평가). 그룹코드는 필드명(asaGradeCd)에 맞춘다.
     @Column(name = "asa_grade_cd", length = 36)
     private String asaGradeCd;
 

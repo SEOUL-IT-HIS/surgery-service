@@ -34,18 +34,18 @@ public class NursingRecord {
     @Column(name = "surgery_id", length = 36, nullable = false)
     private String surgeryId;
 
-    // COUNT_RESULT_CD: 01일치/02불일치
+    // ITEM_COUNT_RESULT_CD: 01일치/02불일치 (SL2-59 물품 수량 확인)
     @Column(name = "item_count_result_cd", length = 36)
     private String itemCountResultCd;
 
     @Column(name = "specimen_barcode", length = 36)
     private String specimenBarcode;
 
-    // SPECIMEN_OR_CD: 01조직/02이물/03기타
+    // SPECIMEN_TYPE_CD: 01조직/02이물/03기타 (SL2-60). 바코드 채번은 진단검사 소관이라 값만 받아 적는다.
     @Column(name = "specimen_type_cd", length = 36)
     private String specimenTypeCd;
 
-    // OR_NURSE_NOTE_CD: 01작성중/02완료
+    // NURSING_STATUS_CD: 01작성중/02완료. 그룹코드는 필드명(recordStatusCd)에 맞춘다.
     @Column(name = "record_status_cd", length = 36)
     private String recordStatusCd;
 

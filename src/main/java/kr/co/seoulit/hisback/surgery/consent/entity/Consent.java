@@ -41,11 +41,13 @@ public class Consent {
     @Column(name = "author_staff_id_fk", length = 36)
     private String authorStaffId;
 
-    // SURG_CONSENT_CD: 01수술/02마취/03비용견적
+    // 동의 종류: 01수술/02마취/03비용견적.
+    // TODO: admin 의 CONSENT_TYPE_CD(57)와 코드값 체계가 다르다(영문 vs 숫자). 협의 후 통일.
     @Column(name = "consent_type_cd", length = 20)
     private String consentTypeCd;
 
-    // SIGNER_RELATION_CD: 01본인/02법정대리인/03배우자/04기타
+    // RELATION_CD(admin-service 보호자관계코드): 01배우자/02부/03모/… 11기타.
+    // TODO: 동의서에는 "본인"·"법정대리인"이 필요한데 RELATION_CD 에 없다. admin 에 추가 요청 중.
     @Column(name = "signer_relation_cd", length = 20)
     private String signerRelationCd;
 

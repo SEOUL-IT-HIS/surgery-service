@@ -42,11 +42,11 @@ public class SurgicalEquipment {
     @Column(name = "equipment_name", length = 100, nullable = false)
     private String equipmentName;
 
-    // STATUS_CD: 장비 상태 코드
+    // OR_EQUIP_STATUS_CD: 01사용가능/02사용중/03점검중/04고장
     @Column(name = "status_cd", length = 36)
     private String statusCd;
 
-    // INOUT_CD: 출고/반입 상태 코드 (SL2-12 출고반입관리)
+    // EQUIP_INOUT_CD: 01출고/02반입 (SL2-12 출고반입관리)
     @Column(name = "inout_cd", length = 36)
     private String inoutCd;
 

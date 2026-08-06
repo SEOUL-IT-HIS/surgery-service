@@ -30,11 +30,15 @@ public class ConsentDto {
 
     private String authorStaffId;
 
-    /** SURG_CONSENT_CD: 01수술/02마취/03비용견적 */
+    /**
+     * 동의 종류. admin-service 에 CONSENT_TYPE_CD(57)가 이미 있으나 검사·영상이
+     * CONTRAST/INVASIVE 처럼 영문 코드값으로 쓰고 있어 체계가 다르다.
+     * 합류할지 SURG_CONSENT_CD 를 신설할지 협의 후 확정한다(§21.4). 현재 값: 01수술/02마취/03비용견적
+     */
     @NotBlank
     private String consentTypeCd;
 
-    /** SIGNER_RELATION_CD: 01본인/02법정대리인/03배우자/04기타 */
+    /** RELATION_CD(admin-service 보호자관계코드, groupId 35)를 재사용한다 — 수술 전용 코드를 따로 두지 않는다(§21.4). */
     @NotBlank
     private String signerRelationCd;
 

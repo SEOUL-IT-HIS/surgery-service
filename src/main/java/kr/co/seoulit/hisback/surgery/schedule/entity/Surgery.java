@@ -55,11 +55,12 @@ public class Surgery {
     @Column(name = "surgery_dt", nullable = false)
     private LocalDate surgeryDt;
 
-    // SURGERY_STATUS_CD: 01예약/02진행중/03완료/04취소 (스케줄 생명주기)
+    // SURGERY_STATUS_CD: 00요청접수/01예약/02진행중/03완료/04취소 (스케줄 생명주기)
+    // 값은 SurgeryStatus 상수로 다룬다 — 문자열을 코드 곳곳에 흩어놓지 않는다.
     @Column(name = "status_cd", length = 36, nullable = false)
     private String statusCd;
 
-    // SURG_PROGRESS_CD: 01대기/02진행중/03종료 (당일 실시간 진행상태, SL2-39/40, status_cd와 별개 트랙)
+    // SURGERY_PROGRESS_CD: 01대기/02진행중/03종료 (당일 실시간 진행상태, SL2-39/40, status_cd와 별개 트랙)
     @Column(name = "progress_cd", length = 36)
     private String progressCd;
 
@@ -67,7 +68,10 @@ public class Surgery {
     @Column(name = "cancel_reason_cd", length = 36)
     private String cancelReasonCd;
 
-    // SURG_TYPE_CD: 01전신마취/02국소마취/03당일수술
+    // SURGERY_TYPE_CD
+    // TODO: 값 정의가 잘못돼 있다 — 01전신마취/02국소마취/03당일수술은 마취 방식과 입원 형태가
+    //       한 코드에 섞인 것이다. 마취 방식은 ANESTHESIA_TYPE_CD 소관이므로,
+    //       공통코드 등록 전에 이 필드가 무엇을 담을지 다시 정해야 한다.
     @Column(name = "surg_type_cd", length = 36)
     private String surgTypeCd;
 
