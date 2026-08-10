@@ -262,7 +262,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
                 s.getStatusCd(),
                 s.getProgressCd(),
                 s.getCancelReasonCd(),
-                s.getSurgTypeCd(),
+                s.getSurgeryTypeCd(),
                 s.getSurgeryName(),
                 s.getEmergencyYn(),
                 s.getActualStartDt(),

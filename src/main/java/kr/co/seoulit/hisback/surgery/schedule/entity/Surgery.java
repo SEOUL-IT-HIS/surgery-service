@@ -72,8 +72,8 @@ public class Surgery {
     // TODO: 값 정의가 잘못돼 있다 — 01전신마취/02국소마취/03당일수술은 마취 방식과 입원 형태가
     //       한 코드에 섞인 것이다. 마취 방식은 ANESTHESIA_TYPE_CD 소관이므로,
     //       공통코드 등록 전에 이 필드가 무엇을 담을지 다시 정해야 한다.
-    @Column(name = "surg_type_cd", length = 36)
-    private String surgTypeCd;
+    @Column(name = "surgery_type_cd", length = 36)
+    private String surgeryTypeCd;
 
     @Column(name = "surgery_name", length = 100)
     private String surgeryName;

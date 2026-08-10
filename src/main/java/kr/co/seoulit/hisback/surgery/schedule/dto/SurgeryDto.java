@@ -44,7 +44,7 @@ public class SurgeryDto {
     private String statusCd;
     private String progressCd;
     private String cancelReasonCd;
-    private String surgTypeCd;
+    private String surgeryTypeCd;
     private String surgeryName;
     private String emergencyYn;
     private LocalDate actualStartDt;

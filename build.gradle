@@ -47,6 +47,15 @@ dependencies {
     // Bean Validation (요청 DTO 입력값 검증 — 가이드 §11.5)
     // 이 의존성이 없으면 @NotBlank 등을 달아도 검증기가 없어 조용히 통과한다.
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // OpenAPI 3 + Swagger UI
+    // 의존성만 추가하면 컨트롤러의 @RequestMapping·파라미터·DTO 구조를 읽어
+    // http://localhost:8383/swagger-ui.html 에 API 목록을 자동으로 그린다.
+    // 어노테이션(@Operation 등)은 필수가 아니며, 설명을 더하고 싶을 때만 붙인다.
+    //
+    // 버전 주의 — springdoc 3.x 가 Spring Boot 4.x 용이다.
+    // adminservice·patient-service 와 같은 3.0.3 으로 맞췄다.
+    // (2.x 는 Boot 3 용이라 Boot 4 에서는 동작이 보장되지 않는다)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
 }
 
 tasks.named('test') {
