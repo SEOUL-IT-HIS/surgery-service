@@ -44,6 +44,7 @@ public class ConsentController {
         return ResponseEntity.ok(ApiResponse.success(consentService.getConsent(consentId)));
     }
 
+    /** 동의서 등록 */
     @PostMapping("/{surgeryId}/consents")
     public ResponseEntity<ApiResponse<ConsentDto>> createConsent(
             @PathVariable String surgeryId, @Valid @RequestBody ConsentDto request) {
