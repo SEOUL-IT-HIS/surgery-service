@@ -38,22 +38,6 @@ public class ConsentDto {
     @NotBlank
     private String consentTypeCd;
 
-    /**
-     * 서명자와 환자의 관계. RELATION_CD(admin-service 보호자관계코드)를 재사용한다(§21.4).
-     *
-     * <p><b>2026-08-10 부터 선택 항목이다.</b> admin 의 UUID 마이그레이션 이후 공통코드가
-     * 46개 → 37개로 줄면서 RELATION_CD 가 빠졌다. 개인정보 감사 계열 4개와 혈액형·격리유형도
-     * 함께 빠진 걸 보면 프로젝트 범위 축소로 보이며, §21.5 의 "시스템은 동의 여부·동의일시 등
-     * 업무 정보만 관리한다" 와도 맞는 방향이다.</p>
-     *
-     * <p>필수를 풀었을 뿐 <b>컬럼과 필드는 그대로 둔다</b> — DB 컬럼이 원래 nullable 이라
-     * DDL 변경이 필요 없고, RELATION_CD 가 복구되면 {@code @NotBlank} 한 줄만 되살리면 된다.
-     * 지금 지우면 되돌릴 때 마이그레이션이 필요해진다.</p>
-     *
-     * <p>admin 담당자 확인 후 정리한다 — 의도적 축소면 필드까지 제거, 마이그레이션 누락이면 원복.</p>
-     */
-    private String signerRelationCd;
-
     /** 서명자 성명 — 이 화면에서 직접 입력받는 원본이라 저장한다(§14.1 스냅샷 금지의 예외) */
     @NotBlank
     private String signedBy;

@@ -89,7 +89,6 @@ public class ConsentServiceImpl implements ConsentService {
                         .surgeryId(request.getSurgeryId())
                         .authorStaffId(request.getAuthorStaffId())
                         .consentTypeCd(request.getConsentTypeCd())
-                        .signerRelationCd(request.getSignerRelationCd())
                         .signedBy(request.getSignedBy())
                         .signedDt(request.getSignedDt())
                         .build();
@@ -109,7 +108,6 @@ public class ConsentServiceImpl implements ConsentService {
                 c.getSurgeryId(),
                 c.getAuthorStaffId(),
                 c.getConsentTypeCd(),
-                c.getSignerRelationCd(),
                 c.getSignedBy(),
                 c.getSignedDt(),
                 c.getCreatedAt(),
