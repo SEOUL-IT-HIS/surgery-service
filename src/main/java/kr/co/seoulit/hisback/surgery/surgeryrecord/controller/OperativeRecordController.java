@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 수술기록 컨트롤러 (SL2-55 작성 / SL2-56 수정 / SL2-57 조회)
  *
- * <p>경로가 두 갈래인 이유 — 작성·조회는 어느 수술의 기록인지가 필요해
- * {@code /{surgeryId}/operative-record} 로 중첩하고, 수정은 기록 ID만으로 대상이 정해지므로
- * {@code /operative-record/{recordId}} 로 평평하게 뒀다(§21.8).</p>
+ * <p>경로가 두 갈래인 이유 — 작성·목록조회는 어느 수술의 기록인지가 필요해
+ * {@code /{surgeryId}/operative-record} 로 중첩하고, 단건조회·수정은 기록 ID만으로 대상이
+ * 정해지므로 {@code /operative-record/{recordId}} 로 평평하게 뒀다(§21.8).</p>
  *
  * <p>수정에 PATCH 가 아니라 PUT 을 쓴 이유 — 시술 코드·명칭을 통째로 교체하는 성격이라
  * 부분 변경이 아니다. 상태만 바꾸는 API 가 필요해지면 그때 PATCH 를 따로 낸다.</p>
@@ -32,6 +32,18 @@ public class OperativeRecordController {
     public ResponseEntity<ApiResponse<List<OperativeRecordDto>>> getOperativeRecords(
             @PathVariable String surgeryId) {
         return ResponseEntity.ok(ApiResponse.success(operativeRecordService.getOperativeRecords(surgeryId)));
+    }
+
+    //getOperativeRecord는 기록 ID 하나로 수술기록 단건을 조회해 ApiResponse로 반환한다 (SL2-57)
+    // 위 목록 조회와 경로가 겹쳐 보이지만, 두 번째 칸이 고정 문자열(operative-record)이냐
+    // 값이냐로 갈려 충돌하지 않는다.
+    //   GET /api/surgery/SUR-1/operative-record  → 목록
+    //   GET /api/surgery/operative-record/OR-1   → 이 메서드
+    // 아래 PUT /operative-record/{recordId} 와 같은 자리를 쓰지만 방식(GET/PUT)이 달라 별개다.
+    @GetMapping("/operative-record/{recordId}")
+    public ResponseEntity<ApiResponse<OperativeRecordDto>> getOperativeRecord(
+            @PathVariable String recordId) {
+        return ResponseEntity.ok(ApiResponse.success(operativeRecordService.getOperativeRecord(recordId)));
     }
 
     //createOperativeRecord는 POST 요청을 받아 OperativeRecordService에 전달(위임)하고, 결과를 ApiResponse로 감싸 반환한다 (SL2-55)

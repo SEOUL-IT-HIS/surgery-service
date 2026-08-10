@@ -39,6 +39,20 @@ public class OperativeRecordServiceImpl implements OperativeRecordService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * SL2-57: 수술기록 단건 조회
+     *
+     * <p>목록과 달리 없으면 예외를 던진다 — 특정 건을 지목한 요청이라 빈 결과가 정상 응답일 수 없다.
+     * 아래 updateOperativeRecord 와 같은 방식으로 대상을 찾는다.</p>
+     */
+    @Override
+    public OperativeRecordDto getOperativeRecord(String recordId) {
+        return toDto(
+                operativeRecordRepository
+                        .findById(recordId)
+                        .orElseThrow(() -> new NoSuchElementException("수술기록을 찾을 수 없습니다: " + recordId)));
+    }
+
     /** SL2-55: 수술기록 작성 — 상태를 안 보내면 초안(01)으로 시작한다. */
     @Override
     public OperativeRecordDto createOperativeRecord(OperativeRecordDto request) {

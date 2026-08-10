@@ -42,8 +42,18 @@ public class Consent {
     @Column(name = "surgery_id", length = 36, nullable = false)
     private String surgeryId;
 
-    // 논리참조(Staff/Provider), 물리FK 아님
-    @Column(name = "author_staff_id_fk", length = 36)
+    // 논리참조(Staff/Provider), 물리FK 아님 — 직원 서비스가 원본을 소유하므로 식별자만 갖는다(§21.9)
+    //
+    // 컬럼명을 author_staff_id_fk 에서 바꿨다(2026-08-10). §14.1 의 FK 규칙은
+    // {참조테이블명}_id 이고 §14.2 접미사 표에도 _fk 는 없다. 프로젝트 전체에서 _fk 가 붙은
+    // 컬럼은 이 하나뿐이라 표준형으로 되돌린 것이다.
+    // 물리 FK 를 걸지 않는다는 사실은 컬럼명이 아니라 위 주석으로 남긴다 — 이름에 담으면
+    // 규칙에서 벗어나고, JSON 키(authorStaffId)와도 어긋난다.
+    //
+    // ddl-auto=update 는 컬럼 이름을 바꿔주지 않는다. 새 이름의 빈 컬럼을 하나 더 만들 뿐이라
+    // 기존 값이 남겨진다. 배포 전에 Oracle 에서 먼저 이름을 바꿔야 한다:
+    //   ALTER TABLE CONSENT RENAME COLUMN author_staff_id_fk TO author_staff_id;
+    @Column(name = "author_staff_id", length = 36)
     private String authorStaffId;
 
     // 동의 종류: 01수술/02마취/03비용견적.

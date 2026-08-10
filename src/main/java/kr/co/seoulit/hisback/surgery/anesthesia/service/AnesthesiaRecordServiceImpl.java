@@ -38,6 +38,24 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
     }
 
     /**
+     * SL2-247: 마취기록 단건 조회
+     *
+     * <p>목록과 달리 없으면 예외를 던진다 — 특정 건을 지목한 요청이라 빈 결과가 정상 응답일 수 없다.
+     * 목록 조회에서 빈 배열이 정상인 것과는 상황이 다르다.</p>
+     *
+     * <p>TODO: 마취기록 전용 NOT_FOUND 에러코드가 없어 appendVitalSigns 와 같이
+     * NoSuchElementException 을 그대로 던진다. ErrorCode 에 항목이 추가되면 두 곳을 함께
+     * BusinessException 으로 교체한다(§15.2).</p>
+     */
+    @Override
+    public AnesthesiaRecordDto getAnesthesiaRecord(String anesthesiaId) {
+        return toDto(
+                anesthesiaRecordRepository
+                        .findById(anesthesiaId)
+                        .orElseThrow(() -> new NoSuchElementException("마취기록을 찾을 수 없습니다: " + anesthesiaId)));
+    }
+
+    /**
      * SL2-18: 마취기록 생성
      *
      * <p>활력징후(vitalSignsLog)를 여기서 받지 않는 이유 — 생성 시점에는 아직 관찰된 값이 없다.
