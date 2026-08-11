@@ -2,12 +2,13 @@ package kr.co.seoulit.hisback.surgery.anesthesia.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.anesthesia.dto.AnesthesiaRecordDto;
 import kr.co.seoulit.hisback.surgery.anesthesia.entity.AnesthesiaRecord;
 import kr.co.seoulit.hisback.surgery.anesthesia.repository.AnesthesiaRecordRepository;
+import kr.co.seoulit.hisback.surgery.global.exception.BusinessException;
+import kr.co.seoulit.hisback.surgery.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 /**
@@ -42,17 +43,15 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
      *
      * <p>목록과 달리 없으면 예외를 던진다 — 특정 건을 지목한 요청이라 빈 결과가 정상 응답일 수 없다.
      * 목록 조회에서 빈 배열이 정상인 것과는 상황이 다르다.</p>
-     *
-     * <p>TODO: 마취기록 전용 NOT_FOUND 에러코드가 없어 appendVitalSigns 와 같이
-     * NoSuchElementException 을 그대로 던진다. ErrorCode 에 항목이 추가되면 두 곳을 함께
-     * BusinessException 으로 교체한다(§15.2).</p>
      */
     @Override
     public AnesthesiaRecordDto getAnesthesiaRecord(String anesthesiaId) {
         return toDto(
                 anesthesiaRecordRepository
                         .findById(anesthesiaId)
-                        .orElseThrow(() -> new NoSuchElementException("마취기록을 찾을 수 없습니다: " + anesthesiaId)));
+                        .orElseThrow(
+                                () -> new BusinessException(
+                                        ErrorCode.ANESTHESIA_RECORD_NOT_FOUND, anesthesiaId)));
     }
 
     /**
@@ -80,16 +79,15 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
      *
      * <p>기존 로그 뒤에 <b>줄바꿈으로 이어 붙인다</b> — 덮어쓰지 않는다. 시각을 서버가 찍는
      * 이유는 클라이언트 시계를 믿을 수 없기 때문이다. 여러 단말에서 기록해도 한 줄기로 정렬된다.</p>
-     *
-     * <p>TODO: 마취기록 전용 NOT_FOUND 에러코드가 없어 NoSuchElementException 을 그대로 던진다.
-     * ErrorCode 에 항목이 추가되면 BusinessException 으로 교체한다(§15.2).</p>
      */
     @Override
     public AnesthesiaRecordDto appendVitalSigns(String anesthesiaId, String vitalSignsEntry) {
         AnesthesiaRecord record =
                 anesthesiaRecordRepository
                         .findById(anesthesiaId)
-                        .orElseThrow(() -> new NoSuchElementException("마취기록을 찾을 수 없습니다: " + anesthesiaId));
+                        .orElseThrow(
+                                () -> new BusinessException(
+                                        ErrorCode.ANESTHESIA_RECORD_NOT_FOUND, anesthesiaId));
         String existing = record.getVitalSignsLog();
         // 첫 기록이면 앞에 줄바꿈을 넣지 않는다 — 빈 줄로 시작하는 로그를 만들지 않기 위해
         String appended =

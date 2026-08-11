@@ -1,12 +1,13 @@
 package kr.co.seoulit.hisback.surgery.consent.service;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.consent.dto.ConsentDto;
 import kr.co.seoulit.hisback.surgery.consent.entity.Consent;
 import kr.co.seoulit.hisback.surgery.consent.repository.ConsentRepository;
+import kr.co.seoulit.hisback.surgery.global.exception.BusinessException;
+import kr.co.seoulit.hisback.surgery.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 /**
@@ -47,7 +48,7 @@ public class ConsentServiceImpl implements ConsentService {
     @Override
     public List<ConsentDto> getConsentsByPatient(String patientId) {
         if (patientId == null || patientId.isBlank()) {
-            throw new IllegalArgumentException("환자 식별자는 필수입니다");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "patientId 누락");
         }
         return consentRepository.findByPatientId(patientId).stream()
                 .map(this::toDto)
@@ -65,7 +66,7 @@ public class ConsentServiceImpl implements ConsentService {
         return toDto(
                 consentRepository
                         .findById(consentId)
-                        .orElseThrow(() -> new NoSuchElementException("동의서를 찾을 수 없습니다: " + consentId)));
+                        .orElseThrow(() -> new BusinessException(ErrorCode.CONSENT_NOT_FOUND, consentId)));
     }
 
     /**
@@ -78,7 +79,8 @@ public class ConsentServiceImpl implements ConsentService {
     public ConsentDto createConsent(ConsentDto request) {
         if (consentRepository.existsBySurgeryIdAndConsentTypeCd(
                 request.getSurgeryId(), request.getConsentTypeCd())) {
-            throw new IllegalArgumentException("이미 등록된 동의 종류입니다: " + request.getConsentTypeCd());
+            throw new BusinessException(
+                    ErrorCode.CONSENT_IS_INSERT_ONE_TO_ONE, request.getConsentTypeCd());
         }
         // PK는 서버가 채번한다. 프론트가 보낸 값이 있으면 존중하되(재시도·마이그레이션 대비),
         // 없으면 UUID로 생성한다 — surgery_id 처럼 업무 의미가 있는 코드가 아니라 내부 식별자다(§14.2)

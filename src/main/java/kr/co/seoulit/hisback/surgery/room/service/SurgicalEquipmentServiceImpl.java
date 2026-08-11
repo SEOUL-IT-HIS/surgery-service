@@ -1,8 +1,9 @@
 package kr.co.seoulit.hisback.surgery.room.service;
 
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
+import kr.co.seoulit.hisback.surgery.global.exception.BusinessException;
+import kr.co.seoulit.hisback.surgery.global.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.room.dto.SurgicalEquipmentDto;
 import kr.co.seoulit.hisback.surgery.room.entity.SurgicalEquipment;
 import kr.co.seoulit.hisback.surgery.room.repository.SurgicalEquipmentRepository;
@@ -82,7 +83,7 @@ public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
 
     private SurgicalEquipment findEquipmentOrThrow(String equipmentId) {
         return surgicalEquipmentRepository.findById(equipmentId)
-                .orElseThrow(() -> new NoSuchElementException("수술장비를 찾을 수 없습니다: " + equipmentId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.EQUIPMENT_NOT_FOUND, equipmentId));
     }
 
     private SurgicalEquipmentDto toDto(SurgicalEquipment equipment) {

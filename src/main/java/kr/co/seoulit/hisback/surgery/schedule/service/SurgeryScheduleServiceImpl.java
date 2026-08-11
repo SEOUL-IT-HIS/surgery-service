@@ -2,9 +2,10 @@ package kr.co.seoulit.hisback.surgery.schedule.service;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import kr.co.seoulit.hisback.surgery.global.exception.BusinessException;
+import kr.co.seoulit.hisback.surgery.global.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
 import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
@@ -97,8 +98,8 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         // 수술 중단이 섞인다. 해당 상태 코드는 아직 정의되지 않았다.
         if (!SurgeryStatus.REQUESTED.equals(surgery.getStatusCd())
                 && !SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
-            throw new IllegalArgumentException(
-                    "요청접수·예약 상태에서만 취소할 수 있습니다: " + surgery.getStatusCd());
+            throw new BusinessException(
+                    ErrorCode.INVALID_SURGERY_STATUS, "취소 시도 상태=" + surgery.getStatusCd());
         }
 
         surgery.setStatusCd(SurgeryStatus.CANCELLED);
@@ -160,10 +161,11 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     public SurgeryDto assignSurgery(String surgeryId, SurgeryDto request) {
         Surgery surgery = findOrThrow(surgeryId);
         if (!SurgeryStatus.REQUESTED.equals(surgery.getStatusCd())) {
-            throw new IllegalArgumentException("요청접수 상태에서만 배정할 수 있습니다: " + surgery.getStatusCd());
+            throw new BusinessException(
+                    ErrorCode.INVALID_SURGERY_STATUS, "배정 시도 상태=" + surgery.getStatusCd());
         }
         if (request.getRoomCode() == null || request.getRoomCode().isBlank()) {
-            throw new IllegalArgumentException("수술실은 필수입니다");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "roomCode 누락");
         }
 
         surgery.setRoomCode(request.getRoomCode());
@@ -185,7 +187,8 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     public SurgeryDto startSurgery(String surgeryId) {
         Surgery surgery = findOrThrow(surgeryId);
         if (!SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
-            throw new IllegalArgumentException("예약 상태에서만 시작할 수 있습니다: " + surgery.getStatusCd());
+            throw new BusinessException(
+                    ErrorCode.INVALID_SURGERY_STATUS, "시작 시도 상태=" + surgery.getStatusCd());
         }
         surgery.setStatusCd(SurgeryStatus.IN_PROGRESS);
         if (surgery.getActualStartDt() == null) {
@@ -230,7 +233,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     private Surgery findOrThrow(String surgeryId) {
         return surgeryRepository
                 .findById(surgeryId)
-                .orElseThrow(() -> new NoSuchElementException("수술 일정을 찾을 수 없습니다: " + surgeryId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SURGERY_NOT_FOUND, surgeryId));
     }
 
     private Surgery fromRequest(SurgeryDto request) {

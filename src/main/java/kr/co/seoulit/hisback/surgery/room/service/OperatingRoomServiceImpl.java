@@ -1,9 +1,10 @@
 package kr.co.seoulit.hisback.surgery.room.service;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
+import kr.co.seoulit.hisback.surgery.global.exception.BusinessException;
+import kr.co.seoulit.hisback.surgery.global.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.room.dto.OperatingRoomDto;
 import kr.co.seoulit.hisback.surgery.room.entity.OperatingRoom;
 import kr.co.seoulit.hisback.surgery.room.repository.OperatingRoomRepository;
@@ -115,7 +116,7 @@ public class OperatingRoomServiceImpl implements OperatingRoomService {
     @Override
     public OperatingRoomDto changeOperatingRoomTurnover(String roomCode, String turnoverCd) {
         if (turnoverCd == null || turnoverCd.isBlank()) {
-            throw new IllegalArgumentException("턴오버 코드는 필수입니다");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "turnoverCd 누락");
         }
         OperatingRoom room = findRoomOrThrow(roomCode);
         room.setTurnoverCd(turnoverCd);
@@ -124,7 +125,7 @@ public class OperatingRoomServiceImpl implements OperatingRoomService {
 
     private OperatingRoom findRoomOrThrow(String roomCode) {
         return operatingRoomRepository.findById(roomCode)
-                .orElseThrow(() -> new NoSuchElementException("수술실을 찾을 수 없습니다: " + roomCode));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SURGERY_ROOM_NOT_FOUND, roomCode));
     }
 
     private OperatingRoomDto toDto(OperatingRoom room) {

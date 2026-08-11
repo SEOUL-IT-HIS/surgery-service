@@ -1,12 +1,13 @@
 package kr.co.seoulit.hisback.surgery.checklist.service;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.checklist.dto.SurgeryChecklistDto;
 import kr.co.seoulit.hisback.surgery.checklist.entity.SurgeryChecklist;
 import kr.co.seoulit.hisback.surgery.checklist.repository.SurgeryChecklistRepository;
+import kr.co.seoulit.hisback.surgery.global.exception.BusinessException;
+import kr.co.seoulit.hisback.surgery.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 /**
@@ -64,8 +65,8 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
                                             requiredPrevPhase.equals(c.getPhaseCd())
                                                     && YES.equals(c.getCompletedYn()));
             if (!prevCompleted) {
-                throw new IllegalArgumentException(
-                        "이전 단계(" + requiredPrevPhase + ")가 완료되지 않아 등록할 수 없습니다.");
+                throw new BusinessException(
+                        ErrorCode.CHECKLIST_PREV_PHASE_INCOMPLETE, "이전 단계=" + requiredPrevPhase);
             }
         }
         // PK는 내부 식별자라 서버가 UUID로 채번한다(§14.2 `_id` → VARCHAR2(36))
@@ -93,7 +94,7 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
         SurgeryChecklist item =
                 surgeryChecklistRepository
                         .findById(checklistId)
-                        .orElseThrow(() -> new NoSuchElementException("체크리스트를 찾을 수 없습니다: " + checklistId));
+                        .orElseThrow(() -> new BusinessException(ErrorCode.CHECKLIST_NOT_FOUND, checklistId));
         item.setCompletedYn(completedYn);
         return toDto(surgeryChecklistRepository.save(item));
     }
@@ -117,6 +118,11 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
     /** 엔티티 → DTO 변환. 엔티티를 응답에 직접 쓰지 않아 테이블 구조가 API 계약에 새지 않는다. */
     private SurgeryChecklistDto toDto(SurgeryChecklist c) {
         return new SurgeryChecklistDto(
-                c.getChecklistId(), c.getSurgeryId(), c.getPhaseCd(), c.getCompletedYn(), c.getCreatedAt(), c.getUpdatedAt());
+                c.getChecklistId(),
+                c.getSurgeryId(),
+                c.getPhaseCd(),
+                c.getCompletedYn(),
+                c.getCreatedAt(),
+                c.getUpdatedAt());
     }
 }

@@ -1,9 +1,10 @@
 package kr.co.seoulit.hisback.surgery.surgeryrecord.service;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import kr.co.seoulit.hisback.surgery.global.exception.BusinessException;
+import kr.co.seoulit.hisback.surgery.global.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.surgeryrecord.dto.OperativeRecordDto;
 import kr.co.seoulit.hisback.surgery.surgeryrecord.entity.OperativeRecord;
 import kr.co.seoulit.hisback.surgery.surgeryrecord.repository.OperativeRecordRepository;
@@ -50,7 +51,9 @@ public class OperativeRecordServiceImpl implements OperativeRecordService {
         return toDto(
                 operativeRecordRepository
                         .findById(recordId)
-                        .orElseThrow(() -> new NoSuchElementException("수술기록을 찾을 수 없습니다: " + recordId)));
+                        .orElseThrow(
+                                () -> new BusinessException(
+                                        ErrorCode.OPERATIVE_RECORD_NOT_FOUND, recordId)));
     }
 
     /** SL2-55: 수술기록 작성 — 상태를 안 보내면 초안(01)으로 시작한다. */
@@ -80,7 +83,9 @@ public class OperativeRecordServiceImpl implements OperativeRecordService {
         OperativeRecord record =
                 operativeRecordRepository
                         .findById(recordId)
-                        .orElseThrow(() -> new NoSuchElementException("수술기록을 찾을 수 없습니다: " + recordId));
+                        .orElseThrow(
+                                () -> new BusinessException(
+                                        ErrorCode.OPERATIVE_RECORD_NOT_FOUND, recordId));
         record.setProcedureCd(request.getProcedureCd());
         record.setProcedureName(request.getProcedureName());
         // 상태는 선택 항목 — null 이면 기존 값을 유지한다
