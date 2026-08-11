@@ -75,6 +75,24 @@ public class CommonCodeCache {
         return codes != null && codes.contains(code);
     }
 
+    /**
+     * 그 그룹을 캐시가 알고 있는지.
+     *
+     * <p><b>검증 전에 이걸 먼저 물어야 한다.</b> {@link #isValid} 는 모르는 그룹에도 false 를
+     * 주므로, 그것만 보고 거절하면 두 상황에서 멀쩡한 요청이 막힌다.</p>
+     * <ul>
+     *   <li>기동 시 admin 이 꺼져 있어 캐시가 통째로 비어 있을 때 — 상태 변경이 전부 막힌다</li>
+     *   <li>admin 에 그룹을 방금 추가했는데 아직 갱신 주기가 안 돌았을 때 — 최대 10분간 막힌다</li>
+     * </ul>
+     *
+     * <p>그래서 호출부는 {@code hasGroup(g) && !isValid(g, code)} 로 쓴다.
+     * "판정할 수 있는데 값이 목록에 없다"일 때만 거절한다는 뜻이다. 판정 자체가 불가능하면
+     * 통과시킨다 — 코드값 하나 잘못 들어오는 것보다 수술실 상태 변경이 막히는 쪽이 위험하다.</p>
+     */
+    public boolean hasGroup(String groupCode) {
+        return groupCode != null && codesByGroup.containsKey(groupCode);
+    }
+
     /** 적재된 그룹 수 — 기동 확인·모니터링용. */
     public int getCachedGroupCount() {
         return codesByGroup.size();

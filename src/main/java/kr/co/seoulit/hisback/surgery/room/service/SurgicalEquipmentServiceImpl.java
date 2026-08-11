@@ -1,6 +1,7 @@
 package kr.co.seoulit.hisback.surgery.room.service;
 
 import java.util.stream.Collectors;
+import kr.co.seoulit.hisback.surgery.common.cache.CommonCodeCache;
 import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
@@ -18,10 +19,30 @@ import org.springframework.stereotype.Service;
 @Service
 public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
 
-    private final SurgicalEquipmentRepository surgicalEquipmentRepository;
+    /** 검증에 쓰는 코드그룹. admin 의 group_code 와 한 글자도 달라선 안 된다. */
+    private static final String GROUP_EQUIP_STATUS = "OR_EQUIP_STATUS_CD";
+    private static final String GROUP_EQUIP_INOUT = "EQUIP_INOUT_CD";
 
-    public SurgicalEquipmentServiceImpl(SurgicalEquipmentRepository surgicalEquipmentRepository) {
+    private final SurgicalEquipmentRepository surgicalEquipmentRepository;
+    private final CommonCodeCache commonCodeCache;
+
+    public SurgicalEquipmentServiceImpl(
+            SurgicalEquipmentRepository surgicalEquipmentRepository, CommonCodeCache commonCodeCache) {
         this.surgicalEquipmentRepository = surgicalEquipmentRepository;
+        this.commonCodeCache = commonCodeCache;
+    }
+
+    /**
+     * 코드값이 그 그룹에 있는 값인지 확인한다.
+     *
+     * <p>캐시가 그 그룹을 모르면 통과시킨다 — admin 이 꺼져 있거나 갱신 전이면 판정 자체가
+     * 불가능하고, 그때 막으면 멀쩡한 장비 상태 변경까지 멈춘다(CommonCodeCache#hasGroup 참고).
+     * OperatingRoomServiceImpl 의 같은 이름 메서드와 동형이다.</p>
+     */
+    private void requireValidCode(String groupCode, String code) {
+        if (commonCodeCache.hasGroup(groupCode) && !commonCodeCache.isValid(groupCode, code)) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, groupCode + "=" + code);
+        }
     }
 
     /** 목록 조회는 상태와 무관하게 전체를 페이지 단위로 반환한다(Room.getOperatingRooms()와 동형).
@@ -68,6 +89,7 @@ public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
     // (기존에는 물리 삭제였으나 가이드 위반이라 상태 전이로 교체 — OperatingRoom SL2-8과 동형)
     @Override
     public SurgicalEquipmentDto changeEquipmentStatus(String equipmentId, String statusCd) {
+        requireValidCode(GROUP_EQUIP_STATUS, statusCd);
         SurgicalEquipment equipment = findEquipmentOrThrow(equipmentId);
         equipment.setStatusCd(statusCd);
         return toDto(surgicalEquipmentRepository.save(equipment));
@@ -76,6 +98,7 @@ public class SurgicalEquipmentServiceImpl implements SurgicalEquipmentService {
     // SL2-12 출고반입: inout_cd 상태 전이 (OperatingRoom changeOperatingRoomStatus와 동형)
     @Override
     public SurgicalEquipmentDto changeInoutStatus(String equipmentId, String inoutCd) {
+        requireValidCode(GROUP_EQUIP_INOUT, inoutCd);
         SurgicalEquipment equipment = findEquipmentOrThrow(equipmentId);
         equipment.setInoutCd(inoutCd);
         return toDto(surgicalEquipmentRepository.save(equipment));
