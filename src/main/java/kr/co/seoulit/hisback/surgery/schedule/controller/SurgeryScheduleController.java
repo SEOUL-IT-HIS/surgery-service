@@ -83,7 +83,7 @@ public class SurgeryScheduleController {
     // 아래 개별 배정 API(/surgeon, /room, ...)는 배정 후 부분 변경용으로 남긴다.
     @PatchMapping("/{surgeryId}/assign")
     public ResponseEntity<ApiResponse<SurgeryDto>> assignSurgery(
-            @PathVariable String surgeryId, @RequestBody SurgeryDto request) {
+            @PathVariable String surgeryId, @Valid @RequestBody SurgeryDto request) {
         return ResponseEntity.ok(
                 ApiResponse.success(surgeryScheduleService.assignSurgery(surgeryId, request)));
     }

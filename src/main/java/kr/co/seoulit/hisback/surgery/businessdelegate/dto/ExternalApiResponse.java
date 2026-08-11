@@ -7,7 +7,7 @@ import lombok.Setter;
 /**
  * 타 서비스 응답 봉투(envelope).
  *
- * <p>수술의 {@code global/common/ApiResponse} 와 모양이 같지만 <b>따로 둔다</b>.
+ * <p>수술의 {@code common/response/ApiResponse} 와 모양이 같지만 <b>따로 둔다</b>.
  * 저쪽은 우리가 <i>내보내는</i> 계약이고 이건 남이 <i>보내온</i> 형식이라, 한 클래스로 겸하면
  * admin 이 응답 모양을 바꿨을 때 우리 응답 계약까지 흔들린다.</p>
  *

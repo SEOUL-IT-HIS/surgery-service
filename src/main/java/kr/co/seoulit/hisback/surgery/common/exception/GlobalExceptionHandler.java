@@ -5,10 +5,14 @@ import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -100,6 +104,63 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(
                         ErrorCode.RESOURCE_NOT_FOUND.getCode(),
                         ErrorCode.RESOURCE_NOT_FOUND.getMessageCode()));
+    }
+
+    /**
+     * 요청 파라미터의 타입이 맞지 않는 경우 (예: {@code ?page=abc}, {@code ?date=abc})
+     *
+     * <p>스프링이 문자열을 int·LocalDate 로 바꾸다 실패한 것이므로 <b>보낸 쪽 잘못</b>이다.
+     * 아래 {@code Exception.class} 로 떨어지면 500 이 되어, 서버 장애 알림이 클라이언트
+     * 실수로 오염된다.</p>
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(
+            MethodArgumentTypeMismatchException e) {
+        log.warn("파라미터 타입 불일치: {}={} (기대 타입 {})",
+                e.getName(), e.getValue(), e.getRequiredType());
+        return badRequest();
+    }
+
+    /** 필수 쿼리 파라미터가 빠진 경우 (예: {@code /consents} 에 patientId 누락) */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParam(
+            MissingServletRequestParameterException e) {
+        log.warn("필수 파라미터 누락: {} ({})", e.getParameterName(), e.getParameterType());
+        return badRequest();
+    }
+
+    /**
+     * 본문 JSON 을 읽지 못한 경우 (깨진 JSON, 숫자 자리에 문자열 등)
+     *
+     * <p>patient-service 도 같은 예외를 400 으로 처리한다. 형식이 깨진 요청은 서버가
+     * 고칠 수 있는 게 없으므로 보낸 쪽에 알려주는 것이 맞다.</p>
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(
+            HttpMessageNotReadableException e) {
+        // 본문 원문에 환자 정보가 섞일 수 있어 예외 메시지만 남기고 본문은 로그에도 남기지 않는다
+        log.warn("요청 본문을 읽을 수 없습니다: {}", e.getMostSpecificCause().getMessage());
+        return badRequest();
+    }
+
+    /** Content-Type 이 없거나 JSON 이 아닌 경우 — 400 이 아니라 415 가 맞다. */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnsupportedMediaType(
+            HttpMediaTypeNotSupportedException e) {
+        log.warn("지원하지 않는 Content-Type: {} (지원: {})",
+                e.getContentType(), e.getSupportedMediaTypes());
+        return ResponseEntity.status(ErrorCode.UNSUPPORTED_MEDIA_TYPE.getCode())
+                .body(ApiResponse.error(
+                        ErrorCode.UNSUPPORTED_MEDIA_TYPE.getCode(),
+                        ErrorCode.UNSUPPORTED_MEDIA_TYPE.getMessageCode()));
+    }
+
+    /** 400(SUR038) 응답이 여러 곳에서 같아 한곳으로 모았다. */
+    private ResponseEntity<ApiResponse<Void>> badRequest() {
+        return ResponseEntity.status(ErrorCode.INVALID_REQUEST.getCode())
+                .body(ApiResponse.error(
+                        ErrorCode.INVALID_REQUEST.getCode(),
+                        ErrorCode.INVALID_REQUEST.getMessageCode()));
     }
 
     /** 그 외 예상치 못한 서버 오류 — 원본은 로그로만, 사용자에겐 공통 코드(SUR040)를 내려준다. */

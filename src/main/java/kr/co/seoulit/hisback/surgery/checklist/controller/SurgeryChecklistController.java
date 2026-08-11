@@ -1,5 +1,6 @@
 package kr.co.seoulit.hisback.surgery.checklist.controller;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import kr.co.seoulit.hisback.surgery.checklist.dto.SurgeryChecklistDto;
@@ -38,7 +39,7 @@ public class SurgeryChecklistController {
     //createChecklistItem은 POST 요청을 받아 SurgeryChecklistService에 전달(위임)하고, 결과를 ApiResponse로 감싸 반환한다
     @PostMapping("/{surgeryId}/checklist")
     public ResponseEntity<ApiResponse<SurgeryChecklistDto>> createChecklistItem(
-            @PathVariable String surgeryId, @RequestBody SurgeryChecklistDto request) {
+            @PathVariable String surgeryId, @Valid @RequestBody SurgeryChecklistDto request) {
         // 본문의 surgeryId 는 신뢰하지 않고 경로 값으로 덮어쓴다.
         // 둘이 다르면 어느 수술에 붙일지 모호해지므로 경로를 정본으로 삼는다.
         request.setSurgeryId(surgeryId);

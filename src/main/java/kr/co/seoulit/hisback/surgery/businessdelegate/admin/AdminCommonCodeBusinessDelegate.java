@@ -12,7 +12,7 @@ import java.util.Map;
  *
  * <p><b>서비스 계층에서 이걸 직접 부르지 않는다.</b> 코드값을 확인할 때마다 admin 에 물으면
  * 요청 한 건이 남의 서비스 응답 속도에 묶이고, admin 이 죽으면 수술도 같이 멈춘다.
- * 실제 판정은 {@code global/cache/CommonCodeCache} 가 메모리에서 하고, 이 창구는
+ * 실제 판정은 {@code common/cache/CommonCodeCache} 가 메모리에서 하고, 이 창구는
  * 그 캐시를 채울 때만 쓰인다.</p>
  *
  * <p>패키지 이름이 businessdelegate 인 것은 lab-imaging-service 와 맞춘 것이다.

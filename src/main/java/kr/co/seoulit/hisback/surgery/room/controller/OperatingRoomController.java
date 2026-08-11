@@ -1,5 +1,6 @@
 package kr.co.seoulit.hisback.surgery.room.controller;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
@@ -97,7 +98,7 @@ public class OperatingRoomController {
             //   JSON 키와 DTO 필드명이 같아야 값이 들어간다(다르면 조용히 null).
             //   Content-Type: application/json 헤더가 없으면 415 로 거절된다.
             //   한 메서드에 하나만 쓸 수 있다 — 본문은 한 번만 읽는 스트림이라서.
-            @RequestBody OperatingRoomDto request) {
+            @Valid @RequestBody OperatingRoomDto request) {
         OperatingRoomDto created = operatingRoomService.createOperatingRoom(request);
         // 새 자원을 만들었으므로 200 이 아니라 201 Created 로 응답한다.
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));
@@ -110,7 +111,7 @@ public class OperatingRoomController {
     public ResponseEntity<ApiResponse<OperatingRoomDto>> updateRoom(
             // 한 메서드에 @PathVariable 과 @RequestBody 를 함께 쓸 수 있다.
             // 대상은 경로에서, 바꿀 내용은 본문에서 온다.
-            @PathVariable String roomCode, @RequestBody OperatingRoomDto request) {
+            @PathVariable String roomCode, @Valid @RequestBody OperatingRoomDto request) {
         return ResponseEntity.ok(
                 ApiResponse.success(operatingRoomService.updateOperatingRoom(roomCode, request)));
     }

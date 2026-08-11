@@ -48,7 +48,7 @@ public class AnesthesiaRecordController {
 
     @PostMapping("/{surgeryId}/anesthesia-records")
     public ResponseEntity<ApiResponse<AnesthesiaRecordDto>> createAnesthesiaRecord(
-            @PathVariable String surgeryId, @RequestBody AnesthesiaRecordDto request) {
+            @PathVariable String surgeryId, @Valid @RequestBody AnesthesiaRecordDto request) {
         request.setSurgeryId(surgeryId);
         AnesthesiaRecordDto created = anesthesiaRecordService.createAnesthesiaRecord(request);
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));

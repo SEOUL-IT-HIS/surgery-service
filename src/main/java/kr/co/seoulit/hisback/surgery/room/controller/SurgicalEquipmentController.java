@@ -49,7 +49,7 @@ public class SurgicalEquipmentController {
 
     //createEquipment는 POST 요청을 받아 SurgicalEquipmentService에 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 감싸 반환한다
     @PostMapping
-    public ResponseEntity<ApiResponse<SurgicalEquipmentDto>> createEquipment(@RequestBody SurgicalEquipmentDto equipmentDto) {
+    public ResponseEntity<ApiResponse<SurgicalEquipmentDto>> createEquipment(@Valid @RequestBody SurgicalEquipmentDto equipmentDto) {
         SurgicalEquipmentDto created = surgicalEquipmentService.createSurgicalEquipment(equipmentDto);
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));
     }

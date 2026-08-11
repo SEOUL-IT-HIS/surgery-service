@@ -33,7 +33,8 @@ public enum ErrorCode {
     // 아래 둘은 서비스가 직접 던지지 않고 GlobalExceptionHandler 가 안전망으로 쓰는 코드다.
     // 어느 자원인지는 로그에만 남기고 사용자에게는 이 코드만 내려간다(§15.1).
     RESOURCE_NOT_FOUND(404, "SUR052", "요청한 자원을 찾을 수 없습니다"),
-    METHOD_NOT_ALLOWED(405, "SUR053", "허용되지 않는 요청 방식입니다");
+    METHOD_NOT_ALLOWED(405, "SUR053", "허용되지 않는 요청 방식입니다"),
+    UNSUPPORTED_MEDIA_TYPE(415, "SUR054", "지원하지 않는 요청 형식입니다");
 
     private final int code;           // HTTP status
     private final String messageCode; // 프론트 messages.ts 매핑 키 (SURxxx)

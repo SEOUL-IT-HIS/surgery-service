@@ -1,5 +1,6 @@
 package kr.co.seoulit.hisback.surgery.nursingrecord.controller;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import kr.co.seoulit.hisback.surgery.nursingrecord.dto.NursingRecordDto;
@@ -36,7 +37,7 @@ public class NursingRecordController {
     //createNursingRecord는 POST 요청을 받아 NursingRecordService에 전달(위임)하고, 결과를 ApiResponse로 감싸 반환한다 (SL2-58)
     @PostMapping("/{surgeryId}/nursing-records")
     public ResponseEntity<ApiResponse<NursingRecordDto>> createNursingRecord(
-            @PathVariable String surgeryId, @RequestBody NursingRecordDto request) {
+            @PathVariable String surgeryId, @Valid @RequestBody NursingRecordDto request) {
         // 본문의 surgeryId 는 신뢰하지 않고 경로 값으로 덮어쓴다 — 둘이 다르면 경로가 정본이다
         request.setSurgeryId(surgeryId);
         NursingRecordDto created = nursingRecordService.createNursingRecord(request);

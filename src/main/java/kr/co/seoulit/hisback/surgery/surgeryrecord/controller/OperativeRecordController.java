@@ -1,5 +1,6 @@
 package kr.co.seoulit.hisback.surgery.surgeryrecord.controller;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import kr.co.seoulit.hisback.surgery.surgeryrecord.dto.OperativeRecordDto;
@@ -49,7 +50,7 @@ public class OperativeRecordController {
     //createOperativeRecord는 POST 요청을 받아 OperativeRecordService에 전달(위임)하고, 결과를 ApiResponse로 감싸 반환한다 (SL2-55)
     @PostMapping("/{surgeryId}/operative-record")
     public ResponseEntity<ApiResponse<OperativeRecordDto>> createOperativeRecord(
-            @PathVariable String surgeryId, @RequestBody OperativeRecordDto request) {
+            @PathVariable String surgeryId, @Valid @RequestBody OperativeRecordDto request) {
         // 본문의 surgeryId 는 신뢰하지 않고 경로 값으로 덮어쓴다 — 둘이 다르면 경로가 정본이다
         request.setSurgeryId(surgeryId);
         OperativeRecordDto created = operativeRecordService.createOperativeRecord(request);
@@ -60,7 +61,7 @@ public class OperativeRecordController {
     //updateOperativeRecord는 PUT 요청을 받아 기록 내용을 교체한다 (SL2-56)
     @PutMapping("/operative-record/{recordId}")
     public ResponseEntity<ApiResponse<OperativeRecordDto>> updateOperativeRecord(
-            @PathVariable String recordId, @RequestBody OperativeRecordDto request) {
+            @PathVariable String recordId, @Valid @RequestBody OperativeRecordDto request) {
         return ResponseEntity.ok(
                 ApiResponse.success(operativeRecordService.updateOperativeRecord(recordId, request)));
     }
