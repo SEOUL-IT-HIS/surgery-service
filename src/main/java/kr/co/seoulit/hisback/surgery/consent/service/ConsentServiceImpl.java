@@ -6,8 +6,8 @@ import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.consent.dto.ConsentDto;
 import kr.co.seoulit.hisback.surgery.consent.entity.Consent;
 import kr.co.seoulit.hisback.surgery.consent.repository.ConsentRepository;
-import kr.co.seoulit.hisback.surgery.global.exception.BusinessException;
-import kr.co.seoulit.hisback.surgery.global.exception.ErrorCode;
+import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
+import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 /**

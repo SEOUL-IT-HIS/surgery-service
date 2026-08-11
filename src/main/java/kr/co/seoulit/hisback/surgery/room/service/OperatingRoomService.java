@@ -2,7 +2,7 @@ package kr.co.seoulit.hisback.surgery.room.service;
 
 import java.util.List;
 
-import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
 import kr.co.seoulit.hisback.surgery.room.dto.OperatingRoomDto;
 import org.springframework.data.domain.Pageable;
 

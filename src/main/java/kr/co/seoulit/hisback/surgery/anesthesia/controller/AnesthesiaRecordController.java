@@ -5,7 +5,7 @@ import java.util.List;
 import kr.co.seoulit.hisback.surgery.anesthesia.dto.AnesthesiaRecordDto;
 import kr.co.seoulit.hisback.surgery.anesthesia.dto.AppendVitalSignsRequest;
 import kr.co.seoulit.hisback.surgery.anesthesia.service.AnesthesiaRecordService;
-import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
+import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

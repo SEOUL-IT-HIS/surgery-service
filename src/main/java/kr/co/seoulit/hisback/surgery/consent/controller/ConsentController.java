@@ -4,7 +4,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import kr.co.seoulit.hisback.surgery.consent.dto.ConsentDto;
 import kr.co.seoulit.hisback.surgery.consent.service.ConsentService;
-import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
+import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

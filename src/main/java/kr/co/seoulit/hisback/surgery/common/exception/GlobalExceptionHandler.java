@@ -1,13 +1,16 @@
-package kr.co.seoulit.hisback.surgery.global.exception;
+package kr.co.seoulit.hisback.surgery.common.exception;
 
 import java.util.NoSuchElementException;
-import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
+import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * 전역 예외 처리 (가이드 §11.5: 서버 예외는 공통 Exception Handler로 일괄 처리)
@@ -64,6 +67,39 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ErrorCode.INVALID_REQUEST.getCode(),
                         ErrorCode.INVALID_REQUEST.getMessageCode()));
+    }
+
+    /**
+     * 있는 경로를 잘못된 방식으로 부른 경우 (예: DELETE 전용 경로를 GET 으로 호출)
+     *
+     * <p>이 핸들러가 없으면 아래 {@code Exception.class} 가 잡아 <b>500</b> 을 내보낸다.
+     * 프론트 입장에서는 "서버가 터졌다"와 "주소를 잘못 불렀다"가 구분되지 않아,
+     * 재시도해야 할 상황인지 코드를 고쳐야 할 상황인지 판단할 수 없다.</p>
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodNotAllowed(
+            HttpRequestMethodNotSupportedException e) {
+        log.warn("허용되지 않는 요청 방식: {} (허용: {})", e.getMethod(), e.getSupportedHttpMethods());
+        return ResponseEntity.status(ErrorCode.METHOD_NOT_ALLOWED.getCode())
+                .body(ApiResponse.error(
+                        ErrorCode.METHOD_NOT_ALLOWED.getCode(),
+                        ErrorCode.METHOD_NOT_ALLOWED.getMessageCode()));
+    }
+
+    /**
+     * 아예 존재하지 않는 경로를 부른 경우.
+     *
+     * <p>두 예외를 함께 받는 이유 — 스프링 버전과 설정에 따라 둘 중 하나가 올라온다.
+     * {@code NoResourceFoundException} 은 정적 자원 처리기가, {@code NoHandlerFoundException} 은
+     * DispatcherServlet 이 던진다. 어느 쪽이든 사용자에게는 같은 상황이다.</p>
+     */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<ApiResponse<Void>> handleNoHandler(Exception e) {
+        log.warn("존재하지 않는 경로: {}", e.getMessage());
+        return ResponseEntity.status(ErrorCode.RESOURCE_NOT_FOUND.getCode())
+                .body(ApiResponse.error(
+                        ErrorCode.RESOURCE_NOT_FOUND.getCode(),
+                        ErrorCode.RESOURCE_NOT_FOUND.getMessageCode()));
     }
 
     /** 그 외 예상치 못한 서버 오류 — 원본은 로그로만, 사용자에겐 공통 코드(SUR040)를 내려준다. */

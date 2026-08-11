@@ -1,4 +1,4 @@
-package kr.co.seoulit.hisback.surgery.global.cache;
+package kr.co.seoulit.hisback.surgery.common.cache;
 
 import jakarta.annotation.PostConstruct;
 import java.util.LinkedHashMap;

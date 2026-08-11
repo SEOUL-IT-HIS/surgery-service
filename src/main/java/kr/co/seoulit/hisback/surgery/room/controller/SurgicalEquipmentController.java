@@ -1,8 +1,8 @@
 package kr.co.seoulit.hisback.surgery.room.controller;
 
 import jakarta.validation.Valid;
-import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
-import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
+import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
 import kr.co.seoulit.hisback.surgery.room.dto.SurgicalEquipmentDto;
 import kr.co.seoulit.hisback.surgery.room.service.SurgicalEquipmentService;
 import org.springframework.data.domain.PageRequest;

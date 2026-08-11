@@ -1,4 +1,4 @@
-package kr.co.seoulit.hisback.surgery.global.exception;
+package kr.co.seoulit.hisback.surgery.common.exception;
 
 import lombok.Getter;
 

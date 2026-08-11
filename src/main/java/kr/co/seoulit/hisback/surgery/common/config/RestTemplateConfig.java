@@ -1,4 +1,4 @@
-package kr.co.seoulit.hisback.surgery.global.config;
+package kr.co.seoulit.hisback.surgery.common.config;
 
 import java.time.Duration;
 import org.springframework.boot.restclient.RestTemplateBuilder;

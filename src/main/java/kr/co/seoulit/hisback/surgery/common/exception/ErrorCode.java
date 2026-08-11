@@ -1,4 +1,4 @@
-package kr.co.seoulit.hisback.surgery.global.exception;
+package kr.co.seoulit.hisback.surgery.common.exception;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -30,9 +30,10 @@ public enum ErrorCode {
     CHECKLIST_NOT_FOUND(404, "SUR049", "해당 체크리스트 항목이 존재하지 않습니다"),
     PLANNED_ITEM_NOT_FOUND(404, "SUR050", "해당 예정 자원이 존재하지 않습니다"),
     CHECKLIST_PREV_PHASE_INCOMPLETE(400, "SUR051", "이전 단계 체크리스트가 완료되지 않았습니다"),
-    // 서비스가 직접 던지지 않고 GlobalExceptionHandler 가 안전망으로 쓰는 코드다.
+    // 아래 둘은 서비스가 직접 던지지 않고 GlobalExceptionHandler 가 안전망으로 쓰는 코드다.
     // 어느 자원인지는 로그에만 남기고 사용자에게는 이 코드만 내려간다(§15.1).
-    RESOURCE_NOT_FOUND(404, "SUR052", "요청한 자원을 찾을 수 없습니다");
+    RESOURCE_NOT_FOUND(404, "SUR052", "요청한 자원을 찾을 수 없습니다"),
+    METHOD_NOT_ALLOWED(405, "SUR053", "허용되지 않는 요청 방식입니다");
 
     private final int code;           // HTTP status
     private final String messageCode; // 프론트 messages.ts 매핑 키 (SURxxx)

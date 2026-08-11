@@ -2,9 +2,9 @@ package kr.co.seoulit.hisback.surgery.room.service;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
-import kr.co.seoulit.hisback.surgery.global.exception.BusinessException;
-import kr.co.seoulit.hisback.surgery.global.exception.ErrorCode;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
+import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.room.dto.OperatingRoomDto;
 import kr.co.seoulit.hisback.surgery.room.entity.OperatingRoom;
 import kr.co.seoulit.hisback.surgery.room.repository.OperatingRoomRepository;

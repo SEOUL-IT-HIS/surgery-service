@@ -2,8 +2,8 @@ package kr.co.seoulit.hisback.surgery.room.controller;
 
 import java.util.List;
 import java.util.Map;
-import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
-import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
+import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
 import kr.co.seoulit.hisback.surgery.room.dto.OperatingRoomDto;
 import kr.co.seoulit.hisback.surgery.room.service.OperatingRoomService;
 import org.springframework.data.domain.PageRequest;

@@ -1,4 +1,4 @@
-package kr.co.seoulit.hisback.surgery.global.common;
+package kr.co.seoulit.hisback.surgery.common.response;
 
 import lombok.Getter;
 

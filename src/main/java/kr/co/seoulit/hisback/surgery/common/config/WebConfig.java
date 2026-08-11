@@ -1,4 +1,4 @@
-package kr.co.seoulit.hisback.surgery.global.config;
+package kr.co.seoulit.hisback.surgery.common.config;
 
 /**
  * 공통 웹 설정 (CORS 등)

@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 import kr.co.seoulit.hisback.surgery.checklist.dto.SurgeryChecklistDto;
 import kr.co.seoulit.hisback.surgery.checklist.service.SurgeryChecklistService;
-import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
+import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

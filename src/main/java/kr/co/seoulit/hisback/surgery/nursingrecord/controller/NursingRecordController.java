@@ -1,7 +1,7 @@
 package kr.co.seoulit.hisback.surgery.nursingrecord.controller;
 
 import java.util.List;
-import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
+import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import kr.co.seoulit.hisback.surgery.nursingrecord.dto.NursingRecordDto;
 import kr.co.seoulit.hisback.surgery.nursingrecord.service.NursingRecordService;
 import org.springframework.http.ResponseEntity;

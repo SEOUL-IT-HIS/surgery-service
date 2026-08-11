@@ -1,6 +1,6 @@
 package kr.co.seoulit.hisback.surgery.room.service;
 
-import kr.co.seoulit.hisback.surgery.global.common.PageResponse;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
 import kr.co.seoulit.hisback.surgery.room.dto.SurgicalEquipmentDto;
 import org.springframework.data.domain.Pageable;
 

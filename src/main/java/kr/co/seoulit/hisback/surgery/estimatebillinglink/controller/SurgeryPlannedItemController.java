@@ -3,7 +3,7 @@ package kr.co.seoulit.hisback.surgery.estimatebillinglink.controller;
 import jakarta.validation.Valid;
 import kr.co.seoulit.hisback.surgery.estimatebillinglink.dto.SurgeryPlannedItemDto;
 import kr.co.seoulit.hisback.surgery.estimatebillinglink.service.SurgeryPlannedItemService;
-import kr.co.seoulit.hisback.surgery.global.common.ApiResponse;
+import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
