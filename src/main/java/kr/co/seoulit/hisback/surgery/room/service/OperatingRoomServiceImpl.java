@@ -86,6 +86,15 @@ public class OperatingRoomServiceImpl implements OperatingRoomService {
 
     @Override
     public OperatingRoomDto createOperatingRoom(OperatingRoomDto request) {
+        // roomCode 는 DTO 에서 @NotBlank 로 막을 수 없다 — 수정 API 가 본문의 roomCode 를
+        // 쓰지 않아 필수로 걸면 이름만 바꾸는 요청까지 400 이 된다(OperatingRoomDto 주석 참고).
+        // 등록에서만 필요한 제약이라 여기서 확인한다.
+        //
+        // PK 를 클라이언트가 정하는 구조라 더 중요하다. 비어 있으면 Hibernate 가
+        // null PK 로 저장을 시도하다 터지고, 그 예외는 500 으로 나간다.
+        if (request.getRoomCode() == null || request.getRoomCode().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "roomCode 누락");
+        }
         OperatingRoom room = OperatingRoom.builder()
                 .roomCode(request.getRoomCode())
                 .roomName(request.getRoomName())
