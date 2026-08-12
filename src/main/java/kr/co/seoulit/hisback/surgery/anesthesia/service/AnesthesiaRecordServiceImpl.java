@@ -1,7 +1,6 @@
 package kr.co.seoulit.hisback.surgery.anesthesia.service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.anesthesia.dto.AnesthesiaRecordDto;
@@ -9,7 +8,11 @@ import kr.co.seoulit.hisback.surgery.anesthesia.entity.AnesthesiaRecord;
 import kr.co.seoulit.hisback.surgery.anesthesia.repository.AnesthesiaRecordRepository;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryGuard;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Pageable;
 
 /**
  * 마취기록 서비스 구현체 (SL2-3)
@@ -26,16 +29,33 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
 
     private final AnesthesiaRecordRepository anesthesiaRecordRepository;
 
-    public AnesthesiaRecordServiceImpl(AnesthesiaRecordRepository anesthesiaRecordRepository) {
+    /** SL2-223: 하위 목록 조회 전에 수술 존재를 확인한다 */
+    private final SurgeryGuard surgeryGuard;
+
+    public AnesthesiaRecordServiceImpl(
+            AnesthesiaRecordRepository anesthesiaRecordRepository, SurgeryGuard surgeryGuard) {
         this.anesthesiaRecordRepository = anesthesiaRecordRepository;
+        this.surgeryGuard = surgeryGuard;
     }
 
-    /** SL2-34: 특정 수술의 마취기록 목록. 수술 존재 여부는 schedule 소관이라 여기서 확인하지 않는다. */
+    /**
+     * SL2-34/246: 특정 수술의 마취기록 목록 (페이지 단위).
+     *
+     * <p>SL2-223: 수술이 없으면 빈 페이지가 아니라 404 다. 잘못된 식별자를 "자료 없음"으로
+     * 답하면 오타가 조용히 넘어간다(2026-08-12 결정).</p>
+     */
     @Override
-    public List<AnesthesiaRecordDto> getAnesthesiaRecords(String surgeryId) {
-        return anesthesiaRecordRepository.findBySurgeryId(surgeryId).stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+    public PageResponse<AnesthesiaRecordDto> getAnesthesiaRecords(
+            String surgeryId, Pageable pageable) {
+        surgeryGuard.requireExists(surgeryId);
+        Page<AnesthesiaRecord> result =
+                anesthesiaRecordRepository.findBySurgeryId(surgeryId, pageable);
+        return new PageResponse<>(
+                result.getContent().stream().map(this::toDto).collect(Collectors.toList()),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages());
     }
 
     /**

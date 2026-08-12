@@ -1,11 +1,14 @@
 package kr.co.seoulit.hisback.surgery.anesthesia.controller;
 
 import jakarta.validation.Valid;
-import java.util.List;
 import kr.co.seoulit.hisback.surgery.anesthesia.dto.AnesthesiaRecordDto;
 import kr.co.seoulit.hisback.surgery.anesthesia.dto.AppendVitalSignsRequest;
 import kr.co.seoulit.hisback.surgery.anesthesia.service.AnesthesiaRecordService;
 import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import kr.co.seoulit.hisback.surgery.common.response.PageableSupport;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,10 +27,32 @@ public class AnesthesiaRecordController {
         this.anesthesiaRecordService = anesthesiaRecordService;
     }
 
+    /**
+     * SL2-34/246: 특정 수술의 마취기록 목록 (페이지 단위)
+     *
+     * <p>{@code GET /api/surgery/{surgeryId}/anesthesia-records?page=0&size=20&sort=createdAt,desc}</p>
+     *
+     * <p>page/size/sort 조립을 컨트롤러가 맡는 것은 수술실 목록(SL2-100)과 같은 방식이다.
+     * 서비스는 {@code Pageable} 만 받아 무엇으로 정렬되는지 신경 쓰지 않는다.</p>
+     *
+     * <p><b>정렬을 안 보내면 작성 시각 역순</b>이다. 정렬을 지정하지 않으면 DB가 돌려주는
+     * 순서에 맡기게 되는데, 그 순서는 보장되지 않아 페이지를 넘길 때 같은 행이 두 번
+     * 나오거나 빠질 수 있다. 기본값을 두어 그 사고를 막는다.</p>
+     *
+     * <p>응답이 배열에서 PageResponse 로 바뀌었다 — 프론트 api.ts 도 함께 고쳤다.</p>
+     */
     @GetMapping("/{surgeryId}/anesthesia-records")
-    public ResponseEntity<ApiResponse<List<AnesthesiaRecordDto>>> getAnesthesiaRecords(
-            @PathVariable String surgeryId) {
-        return ResponseEntity.ok(ApiResponse.success(anesthesiaRecordService.getAnesthesiaRecords(surgeryId)));
+    public ResponseEntity<ApiResponse<PageResponse<AnesthesiaRecordDto>>> getAnesthesiaRecords(
+            @PathVariable String surgeryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort) {
+        Pageable pageable =
+                PageableSupport.of(
+                        page, size, sort, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        anesthesiaRecordService.getAnesthesiaRecords(surgeryId, pageable)));
     }
 
     /**

@@ -5,11 +5,10 @@ import java.util.List;
 import java.util.Map;
 import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import kr.co.seoulit.hisback.surgery.common.response.PageableSupport;
 import kr.co.seoulit.hisback.surgery.room.dto.OperatingRoomDto;
 import kr.co.seoulit.hisback.surgery.room.service.OperatingRoomService;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -61,9 +60,10 @@ public class OperatingRoomController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String sort) {
-        Pageable pageable = (sort != null && !sort.isBlank())
-                ? PageRequest.of(page, size, Sort.by(sort))
-                : PageRequest.of(page, size);
+        // sort 조립을 PageableSupport 로 옮겼다 — Sort.by(sort) 는 "roomName,desc" 처럼
+        //   방향이 붙은 값을 컬럼명 하나로 보고 500 을 낸다. 프론트 PageParams 주석이
+        //   쓰기로 한 형식이 바로 그 형식이라, 방향을 보내는 순간 터진다.
+        Pageable pageable = PageableSupport.of(page, size, sort);
         return ResponseEntity.ok(ApiResponse.success(operatingRoomService.getOperatingRooms(pageable)));
     }
 

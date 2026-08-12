@@ -1,13 +1,26 @@
 package kr.co.seoulit.hisback.surgery.anesthesia.service;
 
-import java.util.List;
 import kr.co.seoulit.hisback.surgery.anesthesia.dto.AnesthesiaRecordDto;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import org.springframework.data.domain.Pageable;
 
 /**
  * 마취기록 서비스 인터페이스 (구현체는 AnesthesiaRecordServiceImpl)
  */
 public interface AnesthesiaRecordService {
-    List<AnesthesiaRecordDto> getAnesthesiaRecords(String surgeryId);
+
+    /**
+     * SL2-34/246: 특정 수술의 마취기록 목록 (페이지 단위)
+     *
+     * <p>전체 목록을 돌려주던 것을 페이지 단위로 바꿨다. 한 수술의 마취기록이 많지는
+     * 않지만, 활력징후를 이어붙이며 기록이 늘어나는 구조라 상한을 두지 않으면 언젠가
+     * 한 번에 다 내려받게 된다.</p>
+     *
+     * <p>정렬 기준을 안 주면 작성 시각 역순(최신 먼저)이다 — 화면에서 가장 먼저 보고 싶은
+     * 것은 마지막 기록이다. 정렬을 아예 지정하지 않으면 DB가 돌려주는 순서에 맡기게 되어
+     * 같은 요청인데 페이지마다 같은 행이 나오거나 빠질 수 있다.</p>
+     */
+    PageResponse<AnesthesiaRecordDto> getAnesthesiaRecords(String surgeryId, Pageable pageable);
 
     /**
      * SL2-247: 마취기록 단건 조회
