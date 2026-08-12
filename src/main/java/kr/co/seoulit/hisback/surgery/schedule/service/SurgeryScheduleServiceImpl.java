@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
+import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryStatusHistoryDto;
 import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
 import kr.co.seoulit.hisback.surgery.schedule.entity.SurgeryStatusHistory;
 import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
@@ -62,6 +63,42 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
                         .afterCd(afterCd)
                         .reasonCd(reasonCd)
                         .build());
+    }
+
+    /**
+     * SL2-282: 한 수술의 상태변경 이력을 조회한다.
+     *
+     * <p>수술이 없으면 빈 목록이 아니라 404 를 돌려준다 — 있지도 않은 수술의 이력을
+     * "없음"으로 답하면 오타로 잘못된 식별자를 넣었을 때 알아채지 못한다.</p>
+     *
+     * <p>{@code statusType} 이 null 이면 STATUS·PROGRESS 를 섞어 시간 역순으로 모두 돌려준다.
+     * 두 종류를 한 테이블에 모았기 때문에, 큰 상태 전이만 보고 싶은 화면은 필터를 건다.</p>
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<SurgeryStatusHistoryDto> getStatusHistory(String surgeryId, String statusType) {
+        findOrThrow(surgeryId);
+
+        List<SurgeryStatusHistory> list =
+                (statusType != null && !statusType.isBlank())
+                        ? historyRepository.findBySurgeryIdAndStatusTypeOrderByChangedAtDesc(
+                                surgeryId, statusType)
+                        : historyRepository.findBySurgeryIdOrderByChangedAtDesc(surgeryId);
+
+        return list.stream().map(this::toHistoryDto).collect(Collectors.toList());
+    }
+
+    /** 이력 엔티티 → DTO. 필드명이 1:1이라 그대로 옮긴다. */
+    private SurgeryStatusHistoryDto toHistoryDto(SurgeryStatusHistory h) {
+        return new SurgeryStatusHistoryDto(
+                h.getHistoryId(),
+                h.getSurgeryId(),
+                h.getStatusType(),
+                h.getBeforeCd(),
+                h.getAfterCd(),
+                h.getReasonCd(),
+                h.getChangedBy(),
+                h.getChangedAt());
     }
 
     @Override

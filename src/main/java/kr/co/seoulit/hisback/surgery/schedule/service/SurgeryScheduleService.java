@@ -3,6 +3,7 @@ package kr.co.seoulit.hisback.surgery.schedule.service;
 import java.time.LocalDate;
 import java.util.List;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
+import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryStatusHistoryDto;
 
 /**
  * 수술 스케줄링 서비스 인터페이스 (구현체는 SurgeryScheduleServiceImpl)
@@ -11,6 +12,17 @@ public interface SurgeryScheduleService {
     List<SurgeryDto> getSchedules(LocalDate surgeryDt);
 
     SurgeryDto getSchedule(String surgeryId);
+
+    /**
+     * SL2-282: 상태변경 이력 조회.
+     *
+     * <p>이력을 만드는 메서드는 따로 두지 않는다 — 상태를 바꾸는 메서드들이 알아서 남긴다.
+     * 이력을 직접 쓸 수 있으면 이력으로서의 신뢰를 잃는다.</p>
+     *
+     * @param surgeryId 수술 식별자. 없는 수술이면 404 SUR035.
+     * @param statusType STATUS 또는 PROGRESS. null·빈값이면 두 종류를 모두 돌려준다.
+     */
+    List<SurgeryStatusHistoryDto> getStatusHistory(String surgeryId, String statusType);
 
     /** SL2-36: 정규 수술 등록 */
     SurgeryDto registerSchedule(SurgeryDto request);

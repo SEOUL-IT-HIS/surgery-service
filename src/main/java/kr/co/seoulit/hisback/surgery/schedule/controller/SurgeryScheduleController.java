@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
+import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryStatusHistoryDto;
 import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryScheduleService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +39,20 @@ public class SurgeryScheduleController {
     @GetMapping("/{surgeryId}")
     public ResponseEntity<ApiResponse<SurgeryDto>> getSchedule(@PathVariable String surgeryId) {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getSchedule(surgeryId)));
+    }
+
+    // SL2-282: 상태변경 이력 조회
+    //   GET /api/surgery/schedule/{surgeryId}/history            → 전체(STATUS+PROGRESS)
+    //   GET /api/surgery/schedule/{surgeryId}/history?type=STATUS → 큰 상태 전이만
+    //
+    //   /{surgeryId} 하위에 둔 이유 — 이력은 수술 한 건에 딸린 것이라 그 수술의 주소 아래가 맞다.
+    //   이력만 따로 조회할 일(전체 수술의 이력)은 요구사항에 없어 열지 않는다.
+    @GetMapping("/{surgeryId}/history")
+    public ResponseEntity<ApiResponse<List<SurgeryStatusHistoryDto>>> getStatusHistory(
+            @PathVariable String surgeryId,
+            @RequestParam(required = false) String type) {
+        return ResponseEntity.ok(
+                ApiResponse.success(surgeryScheduleService.getStatusHistory(surgeryId, type)));
     }
 
     // SL2-225: 배정 대기 목록 — 진료·응급실이 요청했으나 아직 수술실이 잡히지 않은 건(응급 우선)
