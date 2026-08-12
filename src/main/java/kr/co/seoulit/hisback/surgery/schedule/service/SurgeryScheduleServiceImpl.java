@@ -8,9 +8,13 @@ import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
+import kr.co.seoulit.hisback.surgery.schedule.entity.SurgeryStatusHistory;
 import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
+import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryStatusHistoryRepository;
+import kr.co.seoulit.hisback.surgery.schedule.type.StatusChangeType;
 import kr.co.seoulit.hisback.surgery.schedule.type.SurgeryStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 수술 스케줄링 서비스 구현체
@@ -22,9 +26,42 @@ import org.springframework.stereotype.Service;
 public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
 
     private final SurgeryRepository surgeryRepository;
+    private final SurgeryStatusHistoryRepository historyRepository;
 
-    public SurgeryScheduleServiceImpl(SurgeryRepository surgeryRepository) {
+    public SurgeryScheduleServiceImpl(
+            SurgeryRepository surgeryRepository,
+            SurgeryStatusHistoryRepository historyRepository) {
         this.surgeryRepository = surgeryRepository;
+        this.historyRepository = historyRepository;
+    }
+
+    /**
+     * SL2-282: 상태변경 이력을 한 행 남긴다.
+     *
+     * <p>여덟 군데에서 같은 코드를 반복하지 않으려고 한곳으로 모았다. 호출부는
+     * <b>값을 바꾸기 전에</b> 이전 값을 잡아 넘겨야 한다 — set 뒤에 읽으면 before 와 after 가
+     * 같은 값이 되어 이력이 무의미해진다.</p>
+     *
+     * <p>값이 그대로면 남기지 않는다. 같은 버튼을 두 번 눌러도 줄이 늘지 않게 하기 위해서다.</p>
+     *
+     * <p>{@code changedBy} 는 아직 채우지 않는다. 수술 백엔드에 로그인 세션이 없어 서버가
+     * 알아낼 방법이 없고, 프론트에서 받기로 했으나 그러려면 API 계약이 바뀐다.
+     * 컬럼은 nullable 로 만들어 뒀으므로 나중에 채워도 기존 행은 그대로 둔다.</p>
+     */
+    private void recordHistory(
+            String surgeryId, String statusType, String beforeCd, String afterCd, String reasonCd) {
+        if (afterCd != null && afterCd.equals(beforeCd)) {
+            return;
+        }
+        historyRepository.save(
+                SurgeryStatusHistory.builder()
+                        .historyId(UUID.randomUUID().toString())
+                        .surgeryId(surgeryId)
+                        .statusType(statusType)
+                        .beforeCd(beforeCd)
+                        .afterCd(afterCd)
+                        .reasonCd(reasonCd)
+                        .build());
     }
 
     @Override
@@ -50,20 +87,28 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      * 응급으로 둔갑해 배정 우선순위를 가로챈다.</p>
      */
     @Override
+    @Transactional
     public SurgeryDto registerSchedule(SurgeryDto request) {
         Surgery surgery = fromRequest(request);
         surgery.setStatusCd(SurgeryStatus.REQUESTED);
         surgery.setEmergencyYn("N");
-        return toDto(surgeryRepository.save(surgery));
+        Surgery saved = surgeryRepository.save(surgery);
+        // 등록은 저장 뒤에 남긴다 — PK 가 저장 시점에 정해지기 때문이다.
+        // 최초 등록이라 이전 값이 없어 beforeCd 는 null 이다.
+        recordHistory(saved.getSurgeryId(), StatusChangeType.STATUS, null, SurgeryStatus.REQUESTED, null);
+        return toDto(saved);
     }
 
     /** SL2-44: 응급 수술 요청 등록 (응급실이 호출). 동일하게 요청접수이며 emergencyYn=Y 로 고정한다. */
     @Override
+    @Transactional
     public SurgeryDto registerEmergencySchedule(SurgeryDto request) {
         Surgery surgery = fromRequest(request);
         surgery.setStatusCd(SurgeryStatus.REQUESTED);
         surgery.setEmergencyYn("Y");
-        return toDto(surgeryRepository.save(surgery));
+        Surgery saved = surgeryRepository.save(surgery);
+        recordHistory(saved.getSurgeryId(), StatusChangeType.STATUS, null, SurgeryStatus.REQUESTED, null);
+        return toDto(saved);
     }
 
     @Override
@@ -79,6 +124,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     }
 
     @Override
+    @Transactional
     public SurgeryDto cancelSchedule(String surgeryId, String cancelReasonCd) {
         Surgery surgery = findOrThrow(surgeryId);
 
@@ -102,12 +148,16 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
                     ErrorCode.INVALID_SURGERY_STATUS, "취소 시도 상태=" + surgery.getStatusCd());
         }
 
+        // set 하기 전에 이전 값을 잡는다 — 뒤에 읽으면 before 와 after 가 같아진다
+        String before = surgery.getStatusCd();
         surgery.setStatusCd(SurgeryStatus.CANCELLED);
         surgery.setCancelReasonCd(cancelReasonCd);
         // 배정 정보(수술실·집도의·마취의·간호사)는 여기서 지우지 않는다.
-        // 일괄 해제 여부는 SL2-179 에서 별도로 다룬다 — 이력 보존과 자원 반납이
-        // 상충해 판단이 필요하고, 두 필드를 함께 바꾸므로 @Transactional 도 같이 검토해야 한다.
-        return toDto(surgeryRepository.save(surgery));
+        // 일괄 해제 여부는 SL2-179 에서 별도로 다룬다 — 이력 보존과 자원 반납이 상충해 판단이 필요하다.
+        Surgery saved = surgeryRepository.save(surgery);
+        // 취소는 사유가 있는 유일한 전이라 reasonCd 를 함께 남긴다
+        recordHistory(surgeryId, StatusChangeType.STATUS, before, SurgeryStatus.CANCELLED, cancelReasonCd);
+        return toDto(saved);
     }
 
     @Override
@@ -158,6 +208,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      * 요청 자체가 뒤바뀐다. 집도의 변경이 필요하면 별도 API(/surgeon)나 수정(PUT)으로 처리한다.</p>
      */
     @Override
+    @Transactional
     public SurgeryDto assignSurgery(String surgeryId, SurgeryDto request) {
         Surgery surgery = findOrThrow(surgeryId);
         if (!SurgeryStatus.REQUESTED.equals(surgery.getStatusCd())) {
@@ -178,24 +229,31 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         if (request.getSurgeryDt() != null) {
             surgery.setSurgeryDt(request.getSurgeryDt());
         }
+        String before = surgery.getStatusCd();
         surgery.setStatusCd(SurgeryStatus.SCHEDULED);
-        return toDto(surgeryRepository.save(surgery));
+        Surgery saved = surgeryRepository.save(surgery);
+        recordHistory(surgeryId, StatusChangeType.STATUS, before, SurgeryStatus.SCHEDULED, null);
+        return toDto(saved);
     }
 
     /** 수술 시작 — 예약 상태에서만 가능하며 실제 시작일을 남긴다. */
     @Override
+    @Transactional
     public SurgeryDto startSurgery(String surgeryId) {
         Surgery surgery = findOrThrow(surgeryId);
         if (!SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
             throw new BusinessException(
                     ErrorCode.INVALID_SURGERY_STATUS, "시작 시도 상태=" + surgery.getStatusCd());
         }
+        String before = surgery.getStatusCd();
         surgery.setStatusCd(SurgeryStatus.IN_PROGRESS);
         if (surgery.getActualStartDt() == null) {
             // actual_start_dt는 DDL상 DATE(§14.2 `_dt` = 날짜)라 LocalDate를 쓴다.
             surgery.setActualStartDt(LocalDate.now());
         }
-        return toDto(surgeryRepository.save(surgery));
+        Surgery saved = surgeryRepository.save(surgery);
+        recordHistory(surgeryId, StatusChangeType.STATUS, before, SurgeryStatus.IN_PROGRESS, null);
+        return toDto(saved);
     }
 
     @Override
@@ -204,10 +262,15 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     }
 
     @Override
+    @Transactional
     public SurgeryDto updateProgress(String surgeryId, String progressCd) {
         Surgery surgery = findOrThrow(surgeryId);
+        String before = surgery.getProgressCd();
         surgery.setProgressCd(progressCd);
-        return toDto(surgeryRepository.save(surgery));
+        Surgery saved = surgeryRepository.save(surgery);
+        // 여기만 PROGRESS 다 — 나머지 전이는 전부 STATUS 다. 헷갈리면 조회할 때 두 종류가 섞인다.
+        recordHistory(surgeryId, StatusChangeType.PROGRESS, before, progressCd, null);
+        return toDto(saved);
     }
 
     /**
@@ -220,14 +283,18 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      * "수술이 완료됐다"는 통보만 나가 수납 쪽에 유령 청구가 생긴다.</p>
      */
     @Override
+    @Transactional
     public SurgeryDto completeSurgery(String surgeryId) {
         Surgery surgery = findOrThrow(surgeryId);
+        String before = surgery.getStatusCd();
         surgery.setStatusCd(SurgeryStatus.COMPLETED);
         if (surgery.getActualEndDt() == null) {
             // actual_end_dt는 DDL상 DATE(§14.2 `_dt` = 날짜)라 LocalDate를 쓴다.
             surgery.setActualEndDt(LocalDate.now());
         }
-        return toDto(surgeryRepository.save(surgery));
+        Surgery saved = surgeryRepository.save(surgery);
+        recordHistory(surgeryId, StatusChangeType.STATUS, before, SurgeryStatus.COMPLETED, null);
+        return toDto(saved);
     }
 
     private Surgery findOrThrow(String surgeryId) {
