@@ -1,8 +1,13 @@
 package kr.co.seoulit.hisback.surgery.monitoring.service;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
+import kr.co.seoulit.hisback.surgery.monitoring.dto.OperatingRoomStatusDto;
 import kr.co.seoulit.hisback.surgery.monitoring.dto.SurgeryStatusDto;
+import kr.co.seoulit.hisback.surgery.room.entity.OperatingRoom;
+import kr.co.seoulit.hisback.surgery.room.repository.OperatingRoomRepository;
 import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
 import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
 import kr.co.seoulit.hisback.surgery.schedule.type.SurgeryStatus;
@@ -28,12 +33,25 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class SurgeryMonitoringServiceImpl implements SurgeryMonitoringService {
 
+    /**
+     * OR_STATUS_CD 01 = 사용가능.
+     *
+     * <p>OperatingRoomServiceImpl 에도 같은 상수가 있지만 그쪽은 private 이라 가져다
+     * 쓸 수 없다. 값이 두 곳에 생긴 셈이므로, 상태코드가 늘어나면 둘 다 봐야 한다.
+     * 공용 상수 클래스로 뽑는 것이 맞지만 room 패키지 소유라 여기서 정하지 않는다.</p>
+     */
+    private static final String ROOM_STATUS_AVAILABLE = "01";
+
     private final SurgeryRepository surgeryRepository;
+    private final OperatingRoomRepository operatingRoomRepository;
 
     // 생성자 주입 — 필드에 @Autowired 를 붙이지 않는다. 생성자로 받으면 의존성이
     //   빠졌을 때 기동 시점에 바로 드러나고, final 로 둘 수 있어 나중에 바뀌지 않는다.
-    public SurgeryMonitoringServiceImpl(SurgeryRepository surgeryRepository) {
+    public SurgeryMonitoringServiceImpl(
+            SurgeryRepository surgeryRepository,
+            OperatingRoomRepository operatingRoomRepository) {
         this.surgeryRepository = surgeryRepository;
+        this.operatingRoomRepository = operatingRoomRepository;
     }
 
     @Override
@@ -59,6 +77,67 @@ public class SurgeryMonitoringServiceImpl implements SurgeryMonitoringService {
                 .cancelledCount(countByStatus(surgeries, SurgeryStatus.CANCELLED))
                 .emergencyCount(countEmergency(surgeries))
                 .unassignedRoomCount(countUnassignedRoom(surgeries))
+                .build();
+    }
+
+    /**
+     * SL2-287: 수술실별 진행 상태·공실 여부.
+     *
+     * <p>수술실 목록과 그 날 수술 목록을 <b>각각 한 번씩만</b> 읽고 메모리에서 맞춘다.
+     * 방마다 수술을 조회하면 방 수만큼 쿼리가 나간다(N+1).</p>
+     */
+    @Override
+    public List<OperatingRoomStatusDto> getRoomStatus(LocalDate surgeryDt) {
+        LocalDate target = (surgeryDt != null) ? surgeryDt : LocalDate.now();
+
+        List<OperatingRoom> rooms = operatingRoomRepository.findAll();
+        List<Surgery> surgeries = surgeryRepository.findBySurgeryDt(target);
+
+        return rooms.stream()
+                .sorted(Comparator.comparing(OperatingRoom::getRoomCode))
+                .map(room -> toRoomStatus(room, surgeries))
+                .collect(Collectors.toList());
+    }
+
+    /** 수술실 한 칸 + 그 날 수술 목록 → 현황 DTO. */
+    private OperatingRoomStatusDto toRoomStatus(OperatingRoom room, List<Surgery> surgeries) {
+        List<Surgery> ofRoom =
+                surgeries.stream()
+                        .filter(s -> room.getRoomCode().equals(s.getRoomCode()))
+                        .collect(Collectors.toList());
+
+        // 진행중이 둘 이상이면 먼저 시작한 것을 대표로 삼는다. 실제 시작일이 없는 건은
+        //   비교에서 뒤로 보낸다 — null 을 그냥 비교하면 NPE 가 난다.
+        Surgery current =
+                ofRoom.stream()
+                        .filter(s -> SurgeryStatus.IN_PROGRESS.equals(s.getStatusCd()))
+                        .min(
+                                Comparator.comparing(
+                                        Surgery::getActualStartDt,
+                                        Comparator.nullsLast(Comparator.naturalOrder())))
+                        .orElse(null);
+
+        boolean inUse = current != null;
+
+        // 공실 = 진행중 수술이 없고 + 방 자체가 사용가능 상태.
+        //   점검중·폐쇄인 방은 수술이 없어도 배정 후보가 아니다.
+        boolean available = !inUse && ROOM_STATUS_AVAILABLE.equals(room.getStatusCd());
+
+        long scheduled =
+                ofRoom.stream()
+                        .filter(s -> !SurgeryStatus.CANCELLED.equals(s.getStatusCd()))
+                        .count();
+
+        return OperatingRoomStatusDto.builder()
+                .roomCode(room.getRoomCode())
+                .roomName(room.getRoomName())
+                .statusCd(room.getStatusCd())
+                .turnoverCd(room.getTurnoverCd())
+                .inUse(inUse)
+                .available(available)
+                .currentSurgeryId(current != null ? current.getSurgeryId() : null)
+                .currentSurgeryName(current != null ? current.getSurgeryName() : null)
+                .scheduledCount(scheduled)
                 .build();
     }
 

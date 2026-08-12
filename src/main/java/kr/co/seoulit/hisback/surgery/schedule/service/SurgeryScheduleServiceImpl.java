@@ -14,6 +14,7 @@ import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
 import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryStatusHistoryRepository;
 import kr.co.seoulit.hisback.surgery.schedule.type.StatusChangeType;
 import kr.co.seoulit.hisback.surgery.schedule.type.SurgeryStatus;
+import kr.co.seoulit.hisback.surgery.schedule.type.SurgeryStatusTransition;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +50,20 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      * 알아낼 방법이 없고, 프론트에서 받기로 했으나 그러려면 API 계약이 바뀐다.
      * 컬럼은 nullable 로 만들어 뒀으므로 나중에 채워도 기존 행은 그대로 둔다.</p>
      */
+    /**
+     * SL2-281: 상태 전이가 규칙에 맞는지 검사한다. 어긋나면 400 SUR039.
+     *
+     * <p>규칙 자체는 {@link SurgeryStatusTransition} 에 있다 — 여기서는 규칙을 묻고
+     * 예외로 옮기는 일만 한다. 어긋난 전이를 알려주는 상세 문구는 detail 로만 남기고
+     * 응답에는 싣지 않는다(§15.1).</p>
+     */
+    private void requireTransition(String from, String to) {
+        if (!SurgeryStatusTransition.isAllowed(from, to)) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_SURGERY_STATUS, "전이 불가 " + from + "→" + to);
+        }
+    }
+
     private void recordHistory(
             String surgeryId, String statusType, String beforeCd, String afterCd, String reasonCd) {
         if (afterCd != null && afterCd.equals(beforeCd)) {
@@ -179,14 +194,13 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         // 진행중 수술이 실제로 중단되는 경우(환자 상태 악화 등)는 '취소'가 아니라
         // 별도 상태로 다뤄야 한다 — 여기서 함께 처리하면 통계에서 요청 반려와
         // 수술 중단이 섞인다. 해당 상태 코드는 아직 정의되지 않았다.
-        if (!SurgeryStatus.REQUESTED.equals(surgery.getStatusCd())
-                && !SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_SURGERY_STATUS, "취소 시도 상태=" + surgery.getStatusCd());
-        }
-
-        // set 하기 전에 이전 값을 잡는다 — 뒤에 읽으면 before 와 after 가 같아진다
+        //
+        // SL2-281: 위 표는 SurgeryStatusTransition 으로 옮겼다. 규칙이 메서드마다
+        // 흩어져 있으면 새 상태가 생겼을 때 고칠 곳을 놓친다.
         String before = surgery.getStatusCd();
+        requireTransition(before, SurgeryStatus.CANCELLED);
+
+        // set 하기 전에 이전 값을 잡아야 한다 — 뒤에 읽으면 before 와 after 가 같아진다
         surgery.setStatusCd(SurgeryStatus.CANCELLED);
         surgery.setCancelReasonCd(cancelReasonCd);
         // 배정 정보(수술실·집도의·마취의·간호사)는 여기서 지우지 않는다.
@@ -248,10 +262,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     @Transactional
     public SurgeryDto assignSurgery(String surgeryId, SurgeryDto request) {
         Surgery surgery = findOrThrow(surgeryId);
-        if (!SurgeryStatus.REQUESTED.equals(surgery.getStatusCd())) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_SURGERY_STATUS, "배정 시도 상태=" + surgery.getStatusCd());
-        }
+        requireTransition(surgery.getStatusCd(), SurgeryStatus.SCHEDULED);
         if (request.getRoomCode() == null || request.getRoomCode().isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "roomCode 누락");
         }
@@ -278,11 +289,8 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     @Transactional
     public SurgeryDto startSurgery(String surgeryId) {
         Surgery surgery = findOrThrow(surgeryId);
-        if (!SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_SURGERY_STATUS, "시작 시도 상태=" + surgery.getStatusCd());
-        }
         String before = surgery.getStatusCd();
+        requireTransition(before, SurgeryStatus.IN_PROGRESS);
         surgery.setStatusCd(SurgeryStatus.IN_PROGRESS);
         if (surgery.getActualStartDt() == null) {
             // actual_start_dt는 DDL상 DATE(§14.2 `_dt` = 날짜)라 LocalDate를 쓴다.
@@ -302,6 +310,17 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     @Transactional
     public SurgeryDto updateProgress(String surgeryId, String progressCd) {
         Surgery surgery = findOrThrow(surgeryId);
+
+        // SL2-281: 진행단계는 수술이 진행중일 때만 의미가 있다.
+        //
+        // statusCd 전이표와 따로 검사하는 이유 — progressCd 는 다른 축이라 전이표에 넣을 수 없다.
+        // 검사가 없던 동안 완료·취소된 수술의 진행단계를 바꾸는 요청이 200 으로 통과했고,
+        // 그 결과 끝난 수술에 PROGRESS 이력이 계속 쌓일 수 있었다.
+        if (!SurgeryStatus.IN_PROGRESS.equals(surgery.getStatusCd())) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_SURGERY_STATUS, "진행단계 변경 시도 상태=" + surgery.getStatusCd());
+        }
+
         String before = surgery.getProgressCd();
         surgery.setProgressCd(progressCd);
         Surgery saved = surgeryRepository.save(surgery);
@@ -324,6 +343,8 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     public SurgeryDto completeSurgery(String surgeryId) {
         Surgery surgery = findOrThrow(surgeryId);
         String before = surgery.getStatusCd();
+        // SL2-281: 검사가 없던 동안 취소·완료된 수술도 완료 처리가 200 으로 통과했다.
+        requireTransition(before, SurgeryStatus.COMPLETED);
         surgery.setStatusCd(SurgeryStatus.COMPLETED);
         if (surgery.getActualEndDt() == null) {
             // actual_end_dt는 DDL상 DATE(§14.2 `_dt` = 날짜)라 LocalDate를 쓴다.

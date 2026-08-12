@@ -8,6 +8,7 @@ import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.surgeryrecord.dto.OperativeRecordDto;
 import kr.co.seoulit.hisback.surgery.surgeryrecord.entity.OperativeRecord;
 import kr.co.seoulit.hisback.surgery.surgeryrecord.repository.OperativeRecordRepository;
+import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryGuard;
 import org.springframework.stereotype.Service;
 
 /**
@@ -28,13 +29,20 @@ public class OperativeRecordServiceImpl implements OperativeRecordService {
 
     private final OperativeRecordRepository operativeRecordRepository;
 
-    public OperativeRecordServiceImpl(OperativeRecordRepository operativeRecordRepository) {
+    /** SL2-223: 하위 목록 조회 전에 수술 존재를 확인한다 */
+    private final SurgeryGuard surgeryGuard;
+
+    public OperativeRecordServiceImpl(
+            OperativeRecordRepository operativeRecordRepository, SurgeryGuard surgeryGuard) {
         this.operativeRecordRepository = operativeRecordRepository;
+        this.surgeryGuard = surgeryGuard;
     }
 
     /** SL2-57: 특정 수술의 수술기록 목록 조회. */
     @Override
     public List<OperativeRecordDto> getOperativeRecords(String surgeryId) {
+        // SL2-223: 없는 수술이면 빈 목록이 아니라 404 다(2026-08-12 결정)
+        surgeryGuard.requireExists(surgeryId);
         return operativeRecordRepository.findBySurgeryId(surgeryId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());

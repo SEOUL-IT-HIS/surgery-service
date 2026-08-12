@@ -1,6 +1,8 @@
 package kr.co.seoulit.hisback.surgery.monitoring.service;
 
 import java.time.LocalDate;
+import java.util.List;
+import kr.co.seoulit.hisback.surgery.monitoring.dto.OperatingRoomStatusDto;
 import kr.co.seoulit.hisback.surgery.monitoring.dto.SurgeryStatusDto;
 
 /**
@@ -37,4 +39,17 @@ public interface SurgeryMonitoringService {
      * @param surgeryDt 집계 기준일. null 이면 오늘로 본다.
      */
     SurgeryStatusDto getStatusByDate(LocalDate surgeryDt);
+
+    /**
+     * SL2-287: 수술실별 진행 상태와 공실 여부를 집계한다.
+     *
+     * <p>수술실 전체를 돌려준다 — 수술이 잡히지 않은 방도 포함한다. 빈 방이야말로
+     * 배정 담당자가 찾는 것이라, 수술이 있는 방만 추리면 화면이 쓸모없어진다.</p>
+     *
+     * <p>정렬은 수술실 코드 순이다. 화면마다 순서가 달라지면 같은 방을 매번 다른
+     * 자리에서 찾아야 한다.</p>
+     *
+     * @param surgeryDt 기준일. null 이면 오늘.
+     */
+    List<OperatingRoomStatusDto> getRoomStatus(LocalDate surgeryDt);
 }

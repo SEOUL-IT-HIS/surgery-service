@@ -1,7 +1,9 @@
 package kr.co.seoulit.hisback.surgery.monitoring.controller;
 
 import java.time.LocalDate;
+import java.util.List;
 import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
+import kr.co.seoulit.hisback.surgery.monitoring.dto.OperatingRoomStatusDto;
 import kr.co.seoulit.hisback.surgery.monitoring.dto.SurgeryStatusDto;
 import kr.co.seoulit.hisback.surgery.monitoring.service.SurgeryMonitoringService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -65,5 +67,25 @@ public class SurgeryMonitoringController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(
                 ApiResponse.success(surgeryMonitoringService.getStatusByDate(date)));
+    }
+
+    /**
+     * SL2-287: 수술실별 진행 상태·공실 여부.
+     *
+     * <p>{@code GET /api/surgery/monitoring/rooms}<br>
+     * {@code GET /api/surgery/monitoring/rooms?date=2026-08-12}</p>
+     *
+     * <p>수술실 전체를 돌려준다 — 수술이 없는 빈 방도 포함한다. 배정 담당자가 찾는 것이
+     * 빈 방이라, 수술이 있는 방만 추리면 화면이 쓸모없어진다.</p>
+     *
+     * <p>경로를 {@code /status/rooms} 가 아니라 {@code /rooms} 로 둔 이유 — 돌려주는 것이
+     * 하루 요약(status)이 아니라 방 목록이라, status 아래에 넣으면 성격이 어긋난다.</p>
+     */
+    @GetMapping("/rooms")
+    public ResponseEntity<ApiResponse<List<OperatingRoomStatusDto>>> getRoomStatus(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(
+                ApiResponse.success(surgeryMonitoringService.getRoomStatus(date)));
     }
 }
