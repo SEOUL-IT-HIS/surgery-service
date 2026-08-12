@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.nursingrecord.dto.NursingRecordDto;
 import kr.co.seoulit.hisback.surgery.nursingrecord.entity.NursingRecord;
 import kr.co.seoulit.hisback.surgery.nursingrecord.repository.NursingRecordRepository;
+import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryGuard;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,13 +24,20 @@ public class NursingRecordServiceImpl implements NursingRecordService {
 
     private final NursingRecordRepository nursingRecordRepository;
 
-    public NursingRecordServiceImpl(NursingRecordRepository nursingRecordRepository) {
+    /** SL2-223: 하위 목록 조회 전에 수술 존재를 확인한다 */
+    private final SurgeryGuard surgeryGuard;
+
+    public NursingRecordServiceImpl(
+            NursingRecordRepository nursingRecordRepository, SurgeryGuard surgeryGuard) {
         this.nursingRecordRepository = nursingRecordRepository;
+        this.surgeryGuard = surgeryGuard;
     }
 
     /** SL2-61: 특정 수술의 간호기록 목록 조회. */
     @Override
     public List<NursingRecordDto> getNursingRecords(String surgeryId) {
+        // SL2-223: 없는 수술이면 빈 목록이 아니라 404 다(2026-08-12 결정)
+        surgeryGuard.requireExists(surgeryId);
         return nursingRecordRepository.findBySurgeryId(surgeryId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());

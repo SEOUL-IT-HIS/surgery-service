@@ -8,6 +8,7 @@ import kr.co.seoulit.hisback.surgery.checklist.entity.SurgeryChecklist;
 import kr.co.seoulit.hisback.surgery.checklist.repository.SurgeryChecklistRepository;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
+import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryGuard;
 import org.springframework.stereotype.Service;
 
 /**
@@ -35,13 +36,20 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
 
     private final SurgeryChecklistRepository surgeryChecklistRepository;
 
-    public SurgeryChecklistServiceImpl(SurgeryChecklistRepository surgeryChecklistRepository) {
+    /** SL2-223: 하위 목록 조회 전에 수술 존재를 확인한다 */
+    private final SurgeryGuard surgeryGuard;
+
+    public SurgeryChecklistServiceImpl(
+            SurgeryChecklistRepository surgeryChecklistRepository, SurgeryGuard surgeryGuard) {
         this.surgeryChecklistRepository = surgeryChecklistRepository;
+        this.surgeryGuard = surgeryGuard;
     }
 
     /** SL2-35: 특정 수술의 체크리스트 전체 조회 — 단계 순서와 무관하게 등록된 항목을 모두 준다. */
     @Override
     public List<SurgeryChecklistDto> getChecklist(String surgeryId) {
+        // SL2-223: 없는 수술이면 빈 목록이 아니라 404 다(2026-08-12 결정)
+        surgeryGuard.requireExists(surgeryId);
         return surgeryChecklistRepository.findBySurgeryId(surgeryId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());

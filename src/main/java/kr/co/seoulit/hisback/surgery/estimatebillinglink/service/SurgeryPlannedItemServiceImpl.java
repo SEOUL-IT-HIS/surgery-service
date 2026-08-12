@@ -5,6 +5,7 @@ import kr.co.seoulit.hisback.surgery.estimatebillinglink.entity.SurgeryPlannedIt
 import kr.co.seoulit.hisback.surgery.estimatebillinglink.repository.SurgeryPlannedItemRepository;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
+import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryGuard;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
@@ -18,12 +19,19 @@ public class SurgeryPlannedItemServiceImpl implements SurgeryPlannedItemService 
 
     private final SurgeryPlannedItemRepository surgeryPlannedItemRepository;
 
-    public SurgeryPlannedItemServiceImpl(SurgeryPlannedItemRepository repository) {
+    /** SL2-223: 하위 목록 조회 전에 수술 존재를 확인한다 */
+    private final SurgeryGuard surgeryGuard;
+
+    public SurgeryPlannedItemServiceImpl(
+            SurgeryPlannedItemRepository repository, SurgeryGuard surgeryGuard) {
         this.surgeryPlannedItemRepository = repository;
+        this.surgeryGuard = surgeryGuard;
     }
 
     @Override
     public List<SurgeryPlannedItemDto> getPlannedItems(String surgeryId) {
+        // SL2-223: 없는 수술이면 빈 목록이 아니라 404 다(2026-08-12 결정)
+        surgeryGuard.requireExists(surgeryId);
         return surgeryPlannedItemRepository.findBySurgeryId(surgeryId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());

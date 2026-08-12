@@ -8,6 +8,7 @@ import kr.co.seoulit.hisback.surgery.consent.entity.Consent;
 import kr.co.seoulit.hisback.surgery.consent.repository.ConsentRepository;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
+import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryGuard;
 import org.springframework.stereotype.Service;
 
 /**
@@ -25,20 +26,28 @@ public class ConsentServiceImpl implements ConsentService {
 
     private final ConsentRepository consentRepository;
 
+    /** SL2-223: 하위 목록 조회 전에 수술 존재를 확인한다 */
+    private final SurgeryGuard surgeryGuard;
+
     // 생성자가 하나뿐이라 @Autowired 없이도 Spring이 의존성을 주입한다
-    public ConsentServiceImpl(ConsentRepository consentRepository) {
+    public ConsentServiceImpl(
+            ConsentRepository consentRepository, SurgeryGuard surgeryGuard) {
         this.consentRepository = consentRepository;
+        this.surgeryGuard = surgeryGuard;
     }
 
     /**
      * SL2-54: 특정 수술의 동의서 목록
      *
-     * <p>수술 존재 여부를 확인하지 않는 이유 — 없는 수술이면 빈 목록이 나올 뿐이고,
-     * 조회에서 404를 던지려면 schedule 쪽 조회를 한 번 더 해야 한다. 읽기 요청에
-     * 불필요한 결합을 만들지 않는다.</p>
+     * <p>SL2-223: 수술 존재를 먼저 확인한다. 예전에는 "읽기에 불필요한 결합을 만들지 않는다"는
+     * 이유로 확인하지 않았는데, 그러면 식별자를 잘못 넣은 것과 정말 동의서가 없는 것이
+     * 구분되지 않는다. 화면은 "동의서가 없습니다"를 띄우고 사용자는 등록하러 가지만 실제로는
+     * 존재하지 않는 수술을 보고 있게 된다. 조회가 한 번 늘어나는 비용보다 이 사고가 크다.
+     * (2026-08-12 결정 — 서비스마다 갈려 있던 판단을 404 로 통일)</p>
      */
     @Override
     public List<ConsentDto> getConsents(String surgeryId) {
+        surgeryGuard.requireExists(surgeryId);
         return consentRepository.findBySurgeryId(surgeryId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
