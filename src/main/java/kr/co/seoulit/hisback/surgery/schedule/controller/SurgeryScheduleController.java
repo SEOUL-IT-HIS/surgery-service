@@ -9,6 +9,7 @@ import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
 import kr.co.seoulit.hisback.surgery.common.response.PageableSupport;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import kr.co.seoulit.hisback.surgery.schedule.dto.AssignmentRequest;
 import kr.co.seoulit.hisback.surgery.schedule.dto.CancelSurgeryRequest;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryStatusHistoryDto;
@@ -178,42 +179,51 @@ public class SurgeryScheduleController {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.startSurgery(surgeryId)));
     }
 
-    //assignSurgeon은 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
-    // SL2-13: 집도의 배정
+    /**
+     * SL2-13: 집도의 배정
+     *
+     * <p>집도의는 비울 수 없다 — 수술에 집도의가 없는 상태는 업무상 성립하지 않는다.
+     * 나머지 셋은 값을 비워 보내면 배정이 해제된다(SL2-166).</p>
+     */
     @PatchMapping("/{surgeryId}/surgeon")
     public ResponseEntity<ApiResponse<SurgeryDto>> assignSurgeon(
-            @PathVariable String surgeryId, @RequestBody Map<String, String> request) {
+            @PathVariable String surgeryId, @Valid @RequestBody AssignmentRequest request) {
         return ResponseEntity.ok(
-                ApiResponse.success(surgeryScheduleService.assignSurgeon(surgeryId, request.get("surgeonId"))));
+                ApiResponse.success(
+                        surgeryScheduleService.assignSurgeon(surgeryId, request.getSurgeonId())));
     }
 
-    //assignRoom은 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
-    // SL2-15: 수술실 배정
+    /**
+     * SL2-15 수술실 배정 / SL2-166 변경·해제 / SL2-169 조건 검증
+     *
+     * <p>{@code roomCode} 를 비워 보내면 배정 해제다. 값이 있으면 수술실이 실재하고
+     * 사용가능(01) 상태인지 검증한다 — 없으면 404 SUR036, 점검중·폐쇄면 400 SUR045.</p>
+     */
     @PatchMapping("/{surgeryId}/room")
     public ResponseEntity<ApiResponse<SurgeryDto>> assignRoom(
-            @PathVariable String surgeryId, @RequestBody Map<String, String> request) {
+            @PathVariable String surgeryId, @Valid @RequestBody AssignmentRequest request) {
         return ResponseEntity.ok(
-                ApiResponse.success(surgeryScheduleService.assignRoom(surgeryId, request.get("roomCode"))));
+                ApiResponse.success(
+                        surgeryScheduleService.assignRoom(surgeryId, request.getRoomCode())));
     }
 
-    //assignAnesthesiologist는 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
-    // SL2-43: 마취의 배정
+    /** SL2-43: 마취의 배정. 비워 보내면 해제된다(SL2-166). */
     @PatchMapping("/{surgeryId}/anesthesiologist")
     public ResponseEntity<ApiResponse<SurgeryDto>> assignAnesthesiologist(
-            @PathVariable String surgeryId, @RequestBody Map<String, String> request) {
+            @PathVariable String surgeryId, @Valid @RequestBody AssignmentRequest request) {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         surgeryScheduleService.assignAnesthesiologist(
-                                surgeryId, request.get("anesthesiologistId"))));
+                                surgeryId, request.getAnesthesiologistId())));
     }
 
-    //assignNurse는 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
-    // SL2-63: 간호사 배정
+    /** SL2-63: 간호사 배정. 비워 보내면 해제된다(SL2-166). */
     @PatchMapping("/{surgeryId}/nurse")
     public ResponseEntity<ApiResponse<SurgeryDto>> assignNurse(
-            @PathVariable String surgeryId, @RequestBody Map<String, String> request) {
+            @PathVariable String surgeryId, @Valid @RequestBody AssignmentRequest request) {
         return ResponseEntity.ok(
-                ApiResponse.success(surgeryScheduleService.assignNurse(surgeryId, request.get("nurseId"))));
+                ApiResponse.success(
+                        surgeryScheduleService.assignNurse(surgeryId, request.getNurseId())));
     }
 
     //getTodaySchedules는 GET 요청을 받아 금일 수술 목록을 조회해 ApiResponse로 받아 전달한다

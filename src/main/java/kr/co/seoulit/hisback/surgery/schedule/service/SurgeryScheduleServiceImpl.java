@@ -8,6 +8,8 @@ import kr.co.seoulit.hisback.surgery.common.cache.CommonCodeCache;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import kr.co.seoulit.hisback.surgery.room.entity.OperatingRoom;
+import kr.co.seoulit.hisback.surgery.room.repository.OperatingRoomRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
@@ -39,17 +41,37 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      */
     private static final String GROUP_CANCEL_REASON = "SURGERY_CANCEL_CD";
 
+    /**
+     * OR_STATUS_CD 01 = 사용가능 (SL2-169).
+     *
+     * <p>OperatingRoomServiceImpl·SurgeryMonitoringServiceImpl 에도 같은 값이 있다.
+     * 세 곳에 흩어졌으니 room 패키지에 공용 상수로 뽑는 것이 맞지만, 그 패키지 소유라
+     * 여기서 정하지 않는다.</p>
+     */
+    private static final String ROOM_STATUS_AVAILABLE = "01";
+
     private final SurgeryRepository surgeryRepository;
     private final SurgeryStatusHistoryRepository historyRepository;
     private final CommonCodeCache commonCodeCache;
 
+    /**
+     * SL2-169: 수술실 존재·가용 상태 확인용.
+     *
+     * <p>같은 서비스 안의 다른 패키지 리포지토리를 직접 쓴다. 남의 서비스 DB 가 아니라
+     * 우리 테이블이라 §21.2 에 걸리지 않는다. OperatingRoomService 를 거치지 않는 이유는
+     * 존재·상태만 필요해서다 — DTO 변환과 페이징이 붙은 조회를 부를 이유가 없다.</p>
+     */
+    private final OperatingRoomRepository operatingRoomRepository;
+
     public SurgeryScheduleServiceImpl(
             SurgeryRepository surgeryRepository,
             SurgeryStatusHistoryRepository historyRepository,
-            CommonCodeCache commonCodeCache) {
+            CommonCodeCache commonCodeCache,
+            OperatingRoomRepository operatingRoomRepository) {
         this.surgeryRepository = surgeryRepository;
         this.historyRepository = historyRepository;
         this.commonCodeCache = commonCodeCache;
+        this.operatingRoomRepository = operatingRoomRepository;
     }
 
     /**
@@ -284,31 +306,109 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         return toDto(saved);
     }
 
+    /**
+     * SL2-169: 개별 배정을 바꿀 수 있는 상태인지 확인한다.
+     *
+     * <p>요청접수(00)·예약(01)에서만 배정을 손댈 수 있다. 진행중은 환자가 이미 수술대에
+     * 있어 집도의·수술실을 바꾸는 것이 의미가 없고, 완료·취소는 확정된 기록이다.</p>
+     *
+     * <p>지금까지 이 검사가 없어 <b>완료된 수술의 수술실을 바꿀 수 있었다</b>.
+     * updateSchedule(SL2-188)에는 같은 제한을 걸어 뒀는데 이 네 개가 우회로였다.</p>
+     */
+    private void requireAssignable(Surgery surgery) {
+        if (!SurgeryStatus.REQUESTED.equals(surgery.getStatusCd())
+                && !SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_SURGERY_STATUS, "배정 변경 시도 상태=" + surgery.getStatusCd());
+        }
+    }
+
+    /**
+     * SL2-169: 수술실이 실재하고 배정 가능한 상태인지 확인한다.
+     *
+     * <p>지금까지 확인이 없어 {@code roomCode="없는방"} 도 그대로 저장됐다.
+     * 화면이 목록에서 고르게 하고 있어 드러나지 않았을 뿐, API 를 직접 부르면 통과한다.</p>
+     *
+     * <p><b>아직 못 하는 검증</b>(SL2-169 요구사항 중) — 장비 충족 여부와 시간 충돌은
+     * 데이터가 없어 확인할 수 없다. 수술이 필요 장비를 선언하는 자리가 없고,
+     * {@code surgery_dt} 가 DATE 라 같은 날 같은 방에 두 건이 잡혀도 겹치는지 알 수 없다.
+     * 시각 컬럼(예: scheduled_start_at)이 생기면 그때 여기에 추가한다.</p>
+     */
+    private void requireRoomAssignable(String roomCode) {
+        OperatingRoom room =
+                operatingRoomRepository
+                        .findById(roomCode)
+                        .orElseThrow(
+                                () -> new BusinessException(ErrorCode.SURGERY_ROOM_NOT_FOUND, roomCode));
+
+        if (!ROOM_STATUS_AVAILABLE.equals(room.getStatusCd())) {
+            throw new BusinessException(
+                    ErrorCode.SURGERY_ROOM_NOT_AVAILABLE, roomCode + " 상태=" + room.getStatusCd());
+        }
+    }
+
+    /**
+     * SL2-13: 집도의 배정
+     *
+     * <p>직원 실재 여부는 확인하지 않는다 — 병원관리 서비스 소유라 확인하려면 그쪽 API 를
+     * 호출해야 하는데, 지금 그 businessdelegate 가 없다(§21.9). 화면이 admin 에서 받은
+     * 목록에서 고르게 해 걸러진다.</p>
+     *
+     * <p>집도의는 <b>해제할 수 없다</b>. 수술에 집도의가 없는 상태는 업무상 성립하지 않고,
+     * DDL 도 NOT NULL 이다. 다른 셋은 null 로 해제할 수 있다(SL2-166).</p>
+     */
     @Override
+    @Transactional
     public SurgeryDto assignSurgeon(String surgeryId, String surgeonId) {
         Surgery surgery = findOrThrow(surgeryId);
+        requireAssignable(surgery);
+        if (surgeonId == null || surgeonId.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "집도의는 해제할 수 없습니다");
+        }
         surgery.setSurgeonId(surgeonId);
         return toDto(surgeryRepository.save(surgery));
     }
 
+    /**
+     * SL2-15 배정 / SL2-166 변경·해제
+     *
+     * <p>{@code roomCode} 가 비어 있으면 <b>배정 해제</b>다. 상태(01 예약)는 되돌리지 않는다 —
+     * 되돌리면 배정 대기 목록에 다시 뜨는데, 마취의·간호사는 그대로 남아 "배정 대기인데
+     * 마취의가 있는" 어정쩡한 건이 된다. 요청접수로 완전히 되돌리는 것은 취소 시 일괄
+     * 해제(SL2-179)와 함께 정할 문제다.</p>
+     */
     @Override
+    @Transactional
     public SurgeryDto assignRoom(String surgeryId, String roomCode) {
         Surgery surgery = findOrThrow(surgeryId);
-        surgery.setRoomCode(roomCode);
+        requireAssignable(surgery);
+
+        if (roomCode == null || roomCode.isBlank()) {
+            surgery.setRoomCode(null);
+        } else {
+            requireRoomAssignable(roomCode);
+            surgery.setRoomCode(roomCode);
+        }
         return toDto(surgeryRepository.save(surgery));
     }
 
+    /** SL2-43: 마취의 배정. 비우면 해제된다 — 배정 후 나중에 채우는 항목이라 해제도 업무상 있다. */
     @Override
+    @Transactional
     public SurgeryDto assignAnesthesiologist(String surgeryId, String anesthesiologistId) {
         Surgery surgery = findOrThrow(surgeryId);
-        surgery.setAnesthesiologistId(anesthesiologistId);
+        requireAssignable(surgery);
+        surgery.setAnesthesiologistId(blankToNull(anesthesiologistId));
         return toDto(surgeryRepository.save(surgery));
     }
 
+    /** SL2-63: 간호사 배정. 비우면 해제된다. */
     @Override
+    @Transactional
     public SurgeryDto assignNurse(String surgeryId, String nurseId) {
         Surgery surgery = findOrThrow(surgeryId);
-        surgery.setNurseId(nurseId);
+        requireAssignable(surgery);
+        surgery.setNurseId(blankToNull(nurseId));
         return toDto(surgeryRepository.save(surgery));
     }
 
