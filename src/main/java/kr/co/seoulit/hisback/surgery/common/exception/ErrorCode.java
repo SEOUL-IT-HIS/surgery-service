@@ -36,7 +36,12 @@ public enum ErrorCode {
     // 어느 자원인지는 로그에만 남기고 사용자에게는 이 코드만 내려간다(§15.1).
     RESOURCE_NOT_FOUND(404, "SUR052", "요청한 자원을 찾을 수 없습니다"),
     METHOD_NOT_ALLOWED(405, "SUR053", "허용되지 않는 요청 방식입니다"),
-    UNSUPPORTED_MEDIA_TYPE(415, "SUR054", "지원하지 않는 요청 형식입니다");
+    UNSUPPORTED_MEDIA_TYPE(415, "SUR054", "지원하지 않는 요청 형식입니다"),
+
+    // SL2-70/71 수술항목 마스터
+    PROCEDURE_NOT_FOUND(404, "SUR055", "해당 수술항목이 존재하지 않습니다"),
+    // 코드를 사용자가 지정하는 마스터라 중복이 실제로 발생한다(서버 채번이면 생기지 않을 일이다)
+    PROCEDURE_DUPLICATED(400, "SUR056", "이미 등록된 수술항목 코드입니다");
 
     private final int code;           // HTTP status
     private final String messageCode; // 프론트 messages.ts 매핑 키 (SURxxx)

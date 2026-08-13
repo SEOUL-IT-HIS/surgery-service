@@ -1,5 +1,6 @@
 package kr.co.seoulit.hisback.surgery.proceduremaster.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,9 +26,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SurgeryProcedureDto {
 
-    /** 수술항목 코드 — 사용자가 지정하는 마스터 코드다(서버 채번 아님) */
+    /**
+     * 수술항목 코드 — 사용자가 지정하는 마스터 코드다(서버 채번 아님).
+     *
+     * <p>{@code @NotBlank} 를 걸지 않은 이유 — 수정·부분수정은 코드를 경로에서 받으므로
+     * 본문에 없어도 된다. 등록에서 비어 있으면 서비스가 400 SUR038 로 막는다.</p>
+     */
     private String procedureCd;
 
+    /** 술식명. 등록·전체수정에서 필수다. */
+    @NotBlank
     private String procedureName;
 
     /** 사용 여부 'Y'/'N' — §14.2 `_yn` = CHAR(1) */
