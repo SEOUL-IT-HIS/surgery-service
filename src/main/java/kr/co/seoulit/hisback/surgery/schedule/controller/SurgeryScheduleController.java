@@ -8,6 +8,7 @@ import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryStatusHistoryDto;
 import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryScheduleService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,10 +29,27 @@ public class SurgeryScheduleController {
         this.surgeryScheduleService = surgeryScheduleService;
     }
 
-    //getSchedules는 GET 요청을 받아 SurgeryScheduleService에 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
+    /**
+     * 수술 일정 조회 (SL2-25 / SL2-173 입력값 검증)
+     *
+     * <p>{@code GET /api/surgery/schedule} — 전체<br>
+     * {@code GET /api/surgery/schedule?date=2026-08-13} — 해당 일자</p>
+     *
+     * <p><b>{@code @DateTimeFormat} 을 명시한 이유</b> — 없어도 Spring 이 ISO 문자열을
+     * 알아서 변환해 주는 경우가 많지만, 그건 설정에 기대는 동작이다. 어떤 형식을 받는지
+     * 시그니처에 적어두면 Swagger 에도 드러나고, 형식이 어긋났을 때 무엇이 잘못됐는지
+     * 분명해진다. 모니터링 컨트롤러와도 같은 모양이 된다.</p>
+     *
+     * <p>형식이 어긋난 값({@code date=어제})은 GlobalExceptionHandler 의
+     * MethodArgumentTypeMismatch 처리가 400 SUR038 로 돌려준다.</p>
+     *
+     * <p>날짜를 <b>필수로 두지 않았다</b> — 전체 일정을 보는 화면이 실제로 있다.
+     * 다만 그 경우 전건을 읽으므로, 건수가 늘면 페이징이 필요해진다(SL2-235 와 같은 성격).</p>
+     */
     @GetMapping
     public ResponseEntity<ApiResponse<List<SurgeryDto>>> getSchedules(
-            @RequestParam(required = false) LocalDate date) {
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getSchedules(date)));
     }
 

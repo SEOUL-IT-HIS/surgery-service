@@ -165,15 +165,58 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         return toDto(saved);
     }
 
+    /**
+     * SL2-37: 수술 스케줄 수정 (SL2-188 결과·연관 배정 정보 갱신)
+     *
+     * <p><b>전체 교체(PUT)다.</b> 프론트 {@code UpdateSurgeryRequest} 도 같은 계약이라,
+     * 보내지 않은 배정 항목은 비워진다. 일부만 바꾸려면 배정 전용 PATCH(/room, /surgeon,
+     * /anesthesiologist, /nurse)를 쓴다 — 그쪽은 받은 값만 반영한다.</p>
+     *
+     * <h3>수정할 수 없는 것</h3>
+     * <ul>
+     *   <li><b>환자</b> — 환자가 바뀌면 그것은 다른 수술이다. 같은 행을 고쳐 쓰면 이 수술에
+     *       달린 동의서·마취기록이 엉뚱한 환자의 것이 된다. 값이 다르면 거부한다.</li>
+     *   <li><b>상태</b> — 전이 API 로만 바뀐다. 여기서 바꾸면 이력이 남지 않는다(SL2-282).</li>
+     *   <li><b>응급 여부</b> — 배정 우선순위를 뒤집는 값이라 수정으로 다루지 않는다.
+     *       요청 본문에 실려 와도 무시한다.</li>
+     * </ul>
+     *
+     * <p><b>끝난 수술은 고칠 수 없다.</b> 완료·취소는 의무기록으로 확정된 상태라
+     * 조용히 덮어쓰면 안 된다. 정정이 필요하면 별도 업무로 다뤄야 하며 그 요구사항은 아직 없다.</p>
+     */
     @Override
+    @Transactional
     public SurgeryDto updateSchedule(String surgeryId, SurgeryDto request) {
         Surgery surgery = findOrThrow(surgeryId);
+
+        // 요청접수(00)·예약(01)만 수정 대상이다. 진행중은 수술이 이미 시작돼 일정을
+        //   바꾸는 것이 무의미하고, 완료·취소는 확정된 기록이다.
+        if (!SurgeryStatus.REQUESTED.equals(surgery.getStatusCd())
+                && !SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_SURGERY_STATUS, "수정 시도 상태=" + surgery.getStatusCd());
+        }
+
+        // 환자 변경은 거부한다. 무시하고 넘어가면 요청자는 바뀐 줄 알고 있게 된다.
+        if (request.getPatientId() != null
+                && !request.getPatientId().equals(surgery.getPatientId())) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "환자는 수정할 수 없습니다");
+        }
+
         surgery.setSurgeryDt(request.getSurgeryDt());
-        surgery.setRoomCode(request.getRoomCode());
         surgery.setSurgeonId(request.getSurgeonId());
+        surgery.setSurgeryName(request.getSurgeryName());
+        // SL2-188: 프론트가 보내는데 반영되지 않던 항목이다. 계약에 있으면 반영해야 한다.
+        surgery.setSurgeryTypeCd(request.getSurgeryTypeCd());
+
+        // 연관 배정 정보 — 전체 교체 계약이라 보내지 않은 값은 해제된다.
+        //   수술실을 비우면 배정 대기로 되돌아가는 셈이지만 상태(01)는 그대로다.
+        //   상태까지 되돌릴지는 취소 시 일괄 해제(SL2-179)와 함께 정해야 할 문제라
+        //   여기서 임의로 정하지 않는다.
+        surgery.setRoomCode(request.getRoomCode());
         surgery.setAnesthesiologistId(request.getAnesthesiologistId());
         surgery.setNurseId(request.getNurseId());
-        surgery.setSurgeryName(request.getSurgeryName());
+
         return toDto(surgeryRepository.save(surgery));
     }
 
