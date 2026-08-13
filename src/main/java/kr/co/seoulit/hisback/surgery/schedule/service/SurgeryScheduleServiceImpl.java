@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import kr.co.seoulit.hisback.surgery.common.cache.CommonCodeCache;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
@@ -30,14 +31,25 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
 
+    /**
+     * 취소·반려 사유 코드 그룹 (SL2-227).
+     *
+     * <p>admin 에 아직 등록되지 않았다. 등록 전까지는 검증이 건너뛰어지고,
+     * 화면 선택지도 비어 보인다. 등록은 수술 담당이 한다(2026-08-10 합의).</p>
+     */
+    private static final String GROUP_CANCEL_REASON = "SURGERY_CANCEL_CD";
+
     private final SurgeryRepository surgeryRepository;
     private final SurgeryStatusHistoryRepository historyRepository;
+    private final CommonCodeCache commonCodeCache;
 
     public SurgeryScheduleServiceImpl(
             SurgeryRepository surgeryRepository,
-            SurgeryStatusHistoryRepository historyRepository) {
+            SurgeryStatusHistoryRepository historyRepository,
+            CommonCodeCache commonCodeCache) {
         this.surgeryRepository = surgeryRepository;
         this.historyRepository = historyRepository;
+        this.commonCodeCache = commonCodeCache;
     }
 
     /**
@@ -247,6 +259,19 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         // 흩어져 있으면 새 상태가 생겼을 때 고칠 곳을 놓친다.
         String before = surgery.getStatusCd();
         requireTransition(before, SurgeryStatus.CANCELLED);
+
+        // SL2-227: 사유 코드가 왔다면 admin 에 등록된 값인지 확인한다.
+        //
+        //   그룹이 아직 admin 에 없으면 검증을 건너뛴다 — 코드 등록 전이라고 반려 업무를
+        //   막을 수는 없다. 수술실·장비 상태코드에서 쓴 것과 같은 판단이다.
+        //   그룹이 생기는 순간 이 검증이 저절로 살아난다.
+        if (reasonCd != null
+                && !reasonCd.isBlank()
+                && commonCodeCache.hasGroup(GROUP_CANCEL_REASON)
+                && !commonCodeCache.isValid(GROUP_CANCEL_REASON, reasonCd)) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST, GROUP_CANCEL_REASON + "=" + reasonCd);
+        }
 
         // set 하기 전에 이전 값을 잡아야 한다 — 뒤에 읽으면 before 와 after 가 같아진다
         surgery.setStatusCd(SurgeryStatus.CANCELLED);

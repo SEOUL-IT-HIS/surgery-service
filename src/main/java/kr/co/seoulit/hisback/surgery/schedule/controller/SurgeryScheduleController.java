@@ -9,6 +9,7 @@ import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
 import kr.co.seoulit.hisback.surgery.common.response.PageableSupport;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import kr.co.seoulit.hisback.surgery.schedule.dto.CancelSurgeryRequest;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryStatusHistoryDto;
 import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryScheduleService;
@@ -142,13 +143,24 @@ public class SurgeryScheduleController {
                 ApiResponse.success(surgeryScheduleService.updateSchedule(surgeryId, request)));
     }
 
-    //cancelSchedule은 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
-    // SL2-33: 물리 삭제 대신 상태 전이(취소)로 표현한다
+    /**
+     * 수술 취소·반려 (SL2-33 취소 / SL2-227 반려 사유 입력)
+     *
+     * <p>{@code PATCH /api/surgery/schedule/{surgeryId}/cancel}</p>
+     *
+     * <p>물리 삭제 대신 상태 전이(04 취소)로 표현한다(§21.6). 요청접수(00) 상태에서의
+     * 취소가 업무상 '반려'다 — 별도 엔드포인트를 두지 않는 이유는 저장되는 것이
+     * 같기 때문이고, 둘의 구분은 전이 전 상태로 드러난다(이력의 before_cd).</p>
+     *
+     * <p>본문 없이 호출해도 된다({@code required = false}). 사유 없는 취소가 업무상 존재한다.</p>
+     */
     @PatchMapping("/{surgeryId}/cancel")
     public ResponseEntity<ApiResponse<SurgeryDto>> cancelSchedule(
-            @PathVariable String surgeryId, @RequestBody(required = false) Map<String, String> request) {
-        String reasonCd = request != null ? request.get("cancelReasonCd") : null;
-        return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.cancelSchedule(surgeryId, reasonCd)));
+            @PathVariable String surgeryId,
+            @RequestBody(required = false) CancelSurgeryRequest request) {
+        String reasonCd = (request != null) ? request.getCancelReasonCd() : null;
+        return ResponseEntity.ok(
+                ApiResponse.success(surgeryScheduleService.cancelSchedule(surgeryId, reasonCd)));
     }
 
     // SL2-15: 수술 배정 — 수술실·마취의·간호사를 한 번에 채우고 요청접수→예약으로 전이한다.
