@@ -113,7 +113,9 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
                 h.getAfterCd(),
                 h.getReasonCd(),
                 h.getChangedBy(),
-                h.getChangedAt());
+                h.getChangedAt(),
+                h.getCreatedAt(),
+                h.getUpdatedAt());
     }
 
     @Override

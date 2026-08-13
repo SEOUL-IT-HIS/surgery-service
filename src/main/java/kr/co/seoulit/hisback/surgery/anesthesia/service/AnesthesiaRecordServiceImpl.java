@@ -9,6 +9,8 @@ import kr.co.seoulit.hisback.surgery.anesthesia.repository.AnesthesiaRecordRepos
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import kr.co.seoulit.hisback.surgery.consent.repository.ConsentRepository;
+import kr.co.seoulit.hisback.surgery.consent.type.ConsentType;
 import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryGuard;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -32,10 +34,23 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
     /** SL2-223: 하위 목록 조회 전에 수술 존재를 확인한다 */
     private final SurgeryGuard surgeryGuard;
 
+    /**
+     * SL2-244: 마취 동의서 확인용.
+     *
+     * <p>consent 패키지의 리포지토리를 마취 쪽에서 직접 쓴다. 같은 서비스 안이라 §21.2 에
+     * 걸리지 않는다 — 남의 서비스 DB 를 보는 것이 아니라 우리 테이블을 보는 것이다.
+     * ConsentService 를 거치지 않는 이유는 존재 여부만 필요해서다. 목록을 받아 세면
+     * 쓰지도 않을 행을 전부 읽게 된다.</p>
+     */
+    private final ConsentRepository consentRepository;
+
     public AnesthesiaRecordServiceImpl(
-            AnesthesiaRecordRepository anesthesiaRecordRepository, SurgeryGuard surgeryGuard) {
+            AnesthesiaRecordRepository anesthesiaRecordRepository,
+            SurgeryGuard surgeryGuard,
+            ConsentRepository consentRepository) {
         this.anesthesiaRecordRepository = anesthesiaRecordRepository;
         this.surgeryGuard = surgeryGuard;
+        this.consentRepository = consentRepository;
     }
 
     /**
@@ -82,6 +97,23 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
      */
     @Override
     public AnesthesiaRecordDto createAnesthesiaRecord(AnesthesiaRecordDto request) {
+        // SL2-223: 없는 수술이면 404. 아래 동의서 검사보다 먼저 해야 한다 —
+        //   수술이 없으면 "동의서가 없다"가 아니라 "수술이 없다"가 맞는 답이다.
+        surgeryGuard.requireExists(request.getSurgeryId());
+
+        // SL2-244: 마취 동의서(02)가 먼저 있어야 마취 기록을 남길 수 있다.
+        //
+        //   마취는 환자 동의 없이 시행할 수 없는 처치라, 기록이 동의보다 먼저 생기면
+        //   순서가 뒤집힌 의무기록이 된다. 체크리스트가 이전 단계 완료를 요구하는 것과
+        //   같은 성격의 규칙이다(SUR051).
+        //
+        //   마취 동의서는 별도 테이블이 아니라 CONSENT 의 consent_type_cd='02' 행이다.
+        if (!consentRepository.existsBySurgeryIdAndConsentTypeCd(
+                request.getSurgeryId(), ConsentType.ANESTHESIA)) {
+            throw new BusinessException(
+                    ErrorCode.CONSENT_NOT_CONFIRMED, "마취 동의서 미확인 surgeryId=" + request.getSurgeryId());
+        }
+
         String anesthesiaId =
                 request.getAnesthesiaId() != null ? request.getAnesthesiaId() : UUID.randomUUID().toString();
         AnesthesiaRecord record =

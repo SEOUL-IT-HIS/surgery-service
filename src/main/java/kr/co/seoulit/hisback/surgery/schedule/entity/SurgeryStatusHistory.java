@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 /**
  * 수술 상태변경 이력 엔티티 (SL2-282)
@@ -98,4 +99,30 @@ public class SurgeryStatusHistory {
     @CreationTimestamp
     @Column(name = "changed_at", nullable = false, updatable = false)
     private LocalDateTime changedAt;
+
+    /**
+     * 공통 감사 컬럼 (§14.1 "모든 테이블에 created_at, updated_at 공통 포함")
+     *
+     * <p><b>changed_at 과 값이 같아 보이는데 왜 또 두는가</b> — 처음에는 중복이라 보고 뺐지만,
+     * 규칙에 이력 테이블 예외 조항이 없다. 우리끼리 예외를 만들면 다음 사람이 "어떤 테이블은
+     * 있고 어떤 테이블은 없다"는 상태에서 판단 기준을 잃는다. 열두 개 테이블 중 이것만
+     * 다르게 두지 않는다.</p>
+     *
+     * <p>둘의 <b>의미는 다르다</b>. {@code changed_at} 은 "수술 상태가 바뀐 시각"이라는 업무
+     * 사실이고, {@code created_at} 은 "이 행이 저장된 시각"이라는 기록 시각이다. 지금은 같은
+     * 트랜잭션에서 찍혀 값이 같지만, 나중에 지난 변경을 뒤늦게 적재하는 일이 생기면 갈라진다.
+     * 화면과 API 가 쓰는 것은 changed_at 이다.</p>
+     */
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    /**
+     * <p>이력은 고치지 않으므로 이 값은 사실상 created_at 에서 변하지 않는다. 그래도 두는 이유는
+     * 위와 같다 — 값이 변하는지가 아니라 규칙을 지키는지가 기준이다. 만약 이 값이 created_at 과
+     * 달라진 행이 발견되면 그것 자체가 "이력이 수정됐다"는 신호가 되므로, 감사에 쓸모가 있다.</p>
+     */
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 }

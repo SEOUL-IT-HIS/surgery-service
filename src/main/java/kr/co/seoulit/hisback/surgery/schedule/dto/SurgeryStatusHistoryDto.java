@@ -44,4 +44,14 @@ public class SurgeryStatusHistoryDto {
 
     /** 서버가 찍은 변경 시각 (§14.2 `_at` → TIMESTAMP) */
     private LocalDateTime changedAt;
+
+    /**
+     * 공통 감사 컬럼 (§14.1). 다른 DTO(SurgeryDto·ConsentDto 등)와 같은 자리에 같은 이름으로 둔다.
+     *
+     * <p>화면이 시각을 보여줄 때 쓸 것은 {@code changedAt} 이다. 이 둘은 감사용이라 목록에
+     * 노출하지 않는다 — 지금은 changedAt 과 값이 같아 화면에 내면 같은 시각이 세 번 보인다.</p>
+     */
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 }

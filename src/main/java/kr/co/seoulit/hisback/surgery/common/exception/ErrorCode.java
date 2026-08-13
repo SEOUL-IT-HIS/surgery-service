@@ -25,7 +25,9 @@ public enum ErrorCode {
     CONSENT_IS_INSERT_ONE_TO_ONE(400, "SUR044", "수술 동의서는 1:1로만 등록할 수 있습니다"),
     SURGERY_ROOM_NOT_AVAILABLE(400, "SUR045", "점검중이거나 폐쇄된 수술실은 배정할 수 없습니다"),
     CONSENT_NOT_FOUND(404, "SUR046", "해당 동의서가 존재하지 않습니다"),
-    // SUR047 은 프론트 messages.ts 가 '동의서 미확인' 문구로 이미 쓰고 있어 건너뛴다.
+    // SUR047 은 프론트 messages.ts 가 '동의서 미확인' 문구로 먼저 잡아둔 자리였다(SL2-244용).
+    // 이제 백엔드가 그 자리를 채운다 — 문구는 프론트 사전과 같은 뜻으로 맞춘다.
+    CONSENT_NOT_CONFIRMED(400, "SUR047", "동의서가 확인되지 않아 진행할 수 없습니다"),
     ANESTHESIA_RECORD_NOT_FOUND(404, "SUR048", "해당 마취기록이 존재하지 않습니다"),
     CHECKLIST_NOT_FOUND(404, "SUR049", "해당 체크리스트 항목이 존재하지 않습니다"),
     PLANNED_ITEM_NOT_FOUND(404, "SUR050", "해당 예정 자원이 존재하지 않습니다"),
