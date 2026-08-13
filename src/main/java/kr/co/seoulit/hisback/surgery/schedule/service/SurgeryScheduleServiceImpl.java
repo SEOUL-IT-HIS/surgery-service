@@ -265,12 +265,12 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         //   그룹이 아직 admin 에 없으면 검증을 건너뛴다 — 코드 등록 전이라고 반려 업무를
         //   막을 수는 없다. 수술실·장비 상태코드에서 쓴 것과 같은 판단이다.
         //   그룹이 생기는 순간 이 검증이 저절로 살아난다.
-        if (reasonCd != null
-                && !reasonCd.isBlank()
+        if (cancelReasonCd != null
+                && !cancelReasonCd.isBlank()
                 && commonCodeCache.hasGroup(GROUP_CANCEL_REASON)
-                && !commonCodeCache.isValid(GROUP_CANCEL_REASON, reasonCd)) {
+                && !commonCodeCache.isValid(GROUP_CANCEL_REASON, cancelReasonCd)) {
             throw new BusinessException(
-                    ErrorCode.INVALID_REQUEST, GROUP_CANCEL_REASON + "=" + reasonCd);
+                    ErrorCode.INVALID_REQUEST, GROUP_CANCEL_REASON + "=" + cancelReasonCd);
         }
 
         // set 하기 전에 이전 값을 잡아야 한다 — 뒤에 읽으면 before 와 after 가 같아진다
