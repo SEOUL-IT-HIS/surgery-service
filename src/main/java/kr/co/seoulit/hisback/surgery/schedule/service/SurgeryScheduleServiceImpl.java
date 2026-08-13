@@ -6,6 +6,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryStatusHistoryDto;
 import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
@@ -284,14 +287,41 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         return toDto(surgeryRepository.save(surgery));
     }
 
-    /** SL2-225: 배정 대기 목록 — 응급이 먼저 오도록 리포지토리에서 정렬해 내려준다. */
+    /**
+     * SL2-225/235/236: 배정 대기 목록 (검색 + 페이지 단위)
+     *
+     * <p>정렬은 {@link Pageable} 이 들고 온다. 기본값(응급 우선)은 컨트롤러가 정하므로
+     * 여기서는 정렬을 신경 쓰지 않는다.</p>
+     *
+     * <p><b>빈 문자열을 null 로 바꿔 넘기는 이유</b> — 화면 검색창을 비워 보내면
+     * {@code patientId=""} 가 온다. 그대로 넘기면 "환자ID 가 빈 문자열인 건"을 찾게 되어
+     * 결과가 0건이 된다. 비어 있는 것은 "조건 없음"으로 다뤄야 한다.</p>
+     */
     @Override
-    public List<SurgeryDto> getRequestedSchedules() {
-        return surgeryRepository
-                .findByStatusCdOrderByEmergencyYnDescSurgeryDtAsc(SurgeryStatus.REQUESTED)
-                .stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public PageResponse<SurgeryDto> getRequestedSchedules(
+            String emergencyYn, String patientId, LocalDate fromDt, LocalDate toDt, Pageable pageable) {
+
+        Page<Surgery> result =
+                surgeryRepository.searchByStatus(
+                        SurgeryStatus.REQUESTED,
+                        blankToNull(emergencyYn),
+                        blankToNull(patientId),
+                        fromDt,
+                        toDt,
+                        pageable);
+
+        return new PageResponse<>(
+                result.getContent().stream().map(this::toDto).collect(Collectors.toList()),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages());
+    }
+
+    /** 빈 문자열은 "조건 없음"으로 본다. */
+    private String blankToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
     }
 
     /**

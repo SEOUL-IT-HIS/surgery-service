@@ -5,6 +5,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import kr.co.seoulit.hisback.surgery.common.response.PageableSupport;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryStatusHistoryDto;
 import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryScheduleService;
@@ -73,10 +77,45 @@ public class SurgeryScheduleController {
                 ApiResponse.success(surgeryScheduleService.getStatusHistory(surgeryId, type)));
     }
 
-    // SL2-225: 배정 대기 목록 — 진료·응급실이 요청했으나 아직 수술실이 잡히지 않은 건(응급 우선)
+    /**
+     * 배정 대기 목록 (SL2-225 조회 / SL2-235 페이징 / SL2-236 검색·필터)
+     *
+     * <p>{@code GET /api/surgery/schedule/requests}<br>
+     * {@code ...?emergencyYn=Y&patientId=P-1&fromDt=2026-08-01&toDt=2026-08-31&page=0&size=20}</p>
+     *
+     * <p>진료·응급실이 요청했으나 아직 수술실이 잡히지 않은 건(요청접수 00)이다.</p>
+     *
+     * <p><b>기본 정렬이 응급 우선인 이유</b> — 배정 담당자가 먼저 처리해야 할 것이 응급이다.
+     * emergency_yn 이 CHAR(1) 이라 내림차순이면 'Y' 가 'N' 보다 앞선다(§14.2). 같은 등급이면
+     * 희망일이 빠른 순이다. 화면이 정렬을 바꾸고 싶으면 sort 파라미터로 덮어쓴다.</p>
+     *
+     * <p>검색 조건은 전부 선택이다. 아무것도 안 보내면 대기 전체가 나온다.</p>
+     */
     @GetMapping("/requests")
-    public ResponseEntity<ApiResponse<List<SurgeryDto>>> getRequestedSchedules() {
-        return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getRequestedSchedules()));
+    public ResponseEntity<ApiResponse<PageResponse<SurgeryDto>>> getRequestedSchedules(
+            @RequestParam(required = false) String emergencyYn,
+            @RequestParam(required = false) String patientId,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDt,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort) {
+
+        Pageable pageable =
+                PageableSupport.of(
+                        page,
+                        size,
+                        sort,
+                        Sort.by(
+                                Sort.Order.desc("emergencyYn"),
+                                Sort.Order.asc("surgeryDt")));
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        surgeryScheduleService.getRequestedSchedules(
+                                emergencyYn, patientId, fromDt, toDt, pageable)));
     }
 
     //registerSchedule은 POST 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ResponseEntity로 받아 전달한다

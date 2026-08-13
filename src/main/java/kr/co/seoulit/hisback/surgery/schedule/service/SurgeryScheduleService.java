@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryStatusHistoryDto;
+import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import org.springframework.data.domain.Pageable;
 
 /**
  * 수술 스케줄링 서비스 인터페이스 (구현체는 SurgeryScheduleServiceImpl)
@@ -49,7 +51,21 @@ public interface SurgeryScheduleService {
     SurgeryDto assignNurse(String surgeryId, String nurseId);
 
     /** SL2-225: 배정 대기 목록 (status_cd = 요청접수). 응급 건이 먼저 나온다. */
-    List<SurgeryDto> getRequestedSchedules();
+    /**
+     * SL2-225/235/236: 배정 대기 목록 (검색 + 페이지 단위)
+     *
+     * <p>전체 목록을 돌려주던 것을 페이지 단위로 바꿨다. 요청이 쌓이면 한 번에 다 내려받게 되고,
+     * 배정 담당자가 찾는 것은 보통 특정 환자나 특정 날짜의 건이다.</p>
+     *
+     * <p>검색 조건은 모두 선택이다. 아무것도 넣지 않으면 요청접수(00) 전체가 나온다.</p>
+     *
+     * @param emergencyYn 'Y'/'N'. null 이면 전체
+     * @param patientId 환자 식별자. null·공백이면 전체
+     * @param fromDt 희망일 시작. null 이면 하한 없음
+     * @param toDt 희망일 종료. null 이면 상한 없음
+     */
+    PageResponse<SurgeryDto> getRequestedSchedules(
+            String emergencyYn, String patientId, LocalDate fromDt, LocalDate toDt, Pageable pageable);
 
     /**
      * SL2-15: 수술 배정 — 수술실·마취의·간호사(및 조정 예정일)를 한 번에 채우고 예약으로 전이한다.
