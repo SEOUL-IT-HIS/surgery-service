@@ -444,6 +444,28 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
                 result.getTotalPages());
     }
 
+    /**
+     * SL2-170: 수술실 배정 현황 조회
+     *
+     * <p>수술 건 단위로 평평하게 돌려준다. 묶지 않은 근거는 인터페이스 주석에 남겼다.</p>
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<SurgeryDto> getAssignments(
+            String roomCode, String statusCd, LocalDate fromDt, LocalDate toDt, Pageable pageable) {
+
+        Page<Surgery> result =
+                surgeryRepository.searchAssignments(
+                        blankToNull(roomCode), blankToNull(statusCd), fromDt, toDt, pageable);
+
+        return new PageResponse<>(
+                result.getContent().stream().map(this::toDto).collect(Collectors.toList()),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages());
+    }
+
     /** 빈 문자열은 "조건 없음"으로 본다. */
     private String blankToNull(String value) {
         return (value == null || value.isBlank()) ? null : value;

@@ -57,4 +57,31 @@ public interface SurgeryRepository extends JpaRepository<Surgery, String> {
             @Param("fromDt") LocalDate fromDt,
             @Param("toDt") LocalDate toDt,
             Pageable pageable);
+
+    /**
+     * SL2-170: 배정 현황 조회 — 기간·수술실·상태로 거른다.
+     *
+     * <p>{@link #searchByStatus} 와 나눈 이유 — 그쪽은 상태가 <b>고정</b>(요청접수)이고 응급여부로
+     * 거른다. 이쪽은 상태가 <b>선택</b>이고 수술실로 거른다. 한 메서드에 조건을 다 몰면
+     * 파라미터가 일곱 개가 되고, 어느 조합이 어느 화면용인지 읽어서는 알 수 없게 된다.</p>
+     *
+     * <p><b>수술실 미배정 건도 포함된다</b>({@code roomCode} 를 안 주면). 배정 현황을 보는
+     * 목적 중 하나가 "아직 방이 안 잡힌 건"을 찾는 것이라, 빼면 그게 안 보인다.</p>
+     *
+     * <p>취소(04)는 기본적으로 섞인다 — 상태를 지정하지 않으면 전부 나온다. 취소를 빼고
+     * 보려면 {@code statusCd} 를 주면 된다. 여기서 임의로 제외하지 않는 이유는
+     * "그날 그 방에 무엇이 있었나"에 취소도 사실이기 때문이다.</p>
+     */
+    @Query(
+            "select s from Surgery s "
+                    + "where (:roomCode is null or s.roomCode = :roomCode) "
+                    + "and (:statusCd is null or s.statusCd = :statusCd) "
+                    + "and (:fromDt is null or s.surgeryDt >= :fromDt) "
+                    + "and (:toDt is null or s.surgeryDt <= :toDt)")
+    Page<Surgery> searchAssignments(
+            @Param("roomCode") String roomCode,
+            @Param("statusCd") String statusCd,
+            @Param("fromDt") LocalDate fromDt,
+            @Param("toDt") LocalDate toDt,
+            Pageable pageable);
 }

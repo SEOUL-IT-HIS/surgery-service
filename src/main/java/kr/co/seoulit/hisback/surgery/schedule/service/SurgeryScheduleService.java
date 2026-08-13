@@ -68,6 +68,29 @@ public interface SurgeryScheduleService {
             String emergencyYn, String patientId, LocalDate fromDt, LocalDate toDt, Pageable pageable);
 
     /**
+     * SL2-170: 수술실 배정 현황 조회
+     *
+     * <p>기간·수술실·상태로 걸러 <b>수술 건 단위로 평평하게</b> 돌려준다.</p>
+     *
+     * <p><b>수술실 기준으로 묶지 않은 이유</b>(2026-08-13 결정, §21.7 판단 근거 기록) —
+     * 이 정보를 보는 것이 우리 화면만이 아니다. 진료·응급이 자기가 올린 요청이 어떻게
+     * 됐는지 물어볼 때, 수술실로 묶인 응답은 받아서 다시 펼쳐야 한다. 그쪽의 관심은
+     * 방이 아니라 환자와 수술 건이다. 서비스 간 교환이 REST 인 이상(§21.3) 우리만
+     * 중첩 구조를 쓰면 상대가 우리 응답 모양을 따로 배워야 한다.</p>
+     *
+     * <p>방별로 묶어 보고 싶은 화면은 받아서 묶으면 되고, <b>배정이 없는 빈 방</b>까지
+     * 필요하면 {@code GET /api/surgery/monitoring/rooms}(SL2-287)를 함께 부른다 —
+     * 그쪽이 이미 수술실 전체를 공실 여부와 함께 돌려준다.</p>
+     *
+     * @param roomCode 수술실 코드. null 이면 전체(미배정 건도 포함된다)
+     * @param statusCd 수술 상태. null 이면 전체(취소 건도 섞인다)
+     * @param fromDt 수술일 시작. null 이면 하한 없음
+     * @param toDt 수술일 종료. null 이면 상한 없음
+     */
+    PageResponse<SurgeryDto> getAssignments(
+            String roomCode, String statusCd, LocalDate fromDt, LocalDate toDt, Pageable pageable);
+
+    /**
      * SL2-15: 수술 배정 — 수술실·마취의·간호사(및 조정 예정일)를 한 번에 채우고 예약으로 전이한다.
      *
      * <p>환자·집도의는 요청 주체(진료·응급실)가 확정한 값이라 여기서 바꾸지 않는다.

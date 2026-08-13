@@ -120,6 +120,43 @@ public class SurgeryScheduleController {
                                 emergencyYn, patientId, fromDt, toDt, pageable)));
     }
 
+    /**
+     * SL2-170: 수술실 배정 현황 조회
+     *
+     * <p>{@code GET /api/surgery/schedule/assignments}<br>
+     * {@code ...?fromDt=2026-08-01&toDt=2026-08-31&roomCode=ORACLE-01&statusCd=01}</p>
+     *
+     * <p>수술 건 단위로 평평하게 돌려준다. 진료·응급이 자기 요청의 진행 상태를 물어볼 때도
+     * 같은 주소를 쓰므로, 우리 화면 편의만 보고 수술실로 묶지 않았다(§21.3 서비스 간 REST).
+     * 빈 방까지 보려면 {@code /api/surgery/monitoring/rooms} 를 함께 부른다.</p>
+     *
+     * <p>기본 정렬은 수술일 오름차순이다 — 배정 현황은 시간 순으로 훑는 화면이다.</p>
+     *
+     * <p>{@code /requests} 와 경로를 나눈 이유 — 그쪽은 <b>아직 배정 안 된 것</b>만 보는
+     * 고정된 목적이고, 이쪽은 상태를 골라 보는 조회다. 한 주소에 몰면 파라미터 조합으로만
+     * 목적이 구분되어 읽기 어려워진다.</p>
+     */
+    @GetMapping("/assignments")
+    public ResponseEntity<ApiResponse<PageResponse<SurgeryDto>>> getAssignments(
+            @RequestParam(required = false) String roomCode,
+            @RequestParam(required = false) String statusCd,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDt,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort) {
+
+        Pageable pageable =
+                PageableSupport.of(page, size, sort, Sort.by(Sort.Order.asc("surgeryDt")));
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        surgeryScheduleService.getAssignments(
+                                roomCode, statusCd, fromDt, toDt, pageable)));
+    }
+
     //registerSchedule은 POST 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ResponseEntity로 받아 전달한다
     @PostMapping
     public ResponseEntity<ApiResponse<SurgeryDto>> registerSchedule(@Valid @RequestBody SurgeryDto request) {
