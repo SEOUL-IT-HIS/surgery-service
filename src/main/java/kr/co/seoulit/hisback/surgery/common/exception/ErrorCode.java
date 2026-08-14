@@ -41,7 +41,11 @@ public enum ErrorCode {
     // SL2-70/71 수술항목 마스터
     PROCEDURE_NOT_FOUND(404, "SUR055", "해당 수술항목이 존재하지 않습니다"),
     // 코드를 사용자가 지정하는 마스터라 중복이 실제로 발생한다(서버 채번이면 생기지 않을 일이다)
-    PROCEDURE_DUPLICATED(400, "SUR056", "이미 등록된 수술항목 코드입니다");
+    PROCEDURE_DUPLICATED(400, "SUR056", "이미 등록된 수술항목 코드입니다"),
+
+    // SL2-36/44 수술 오더
+    ORDER_NOT_FOUND(404, "SUR057", "해당 수술 요청이 존재하지 않습니다"),
+    INVALID_ORDER_STATUS(400, "SUR058", "이미 처리된 수술 요청입니다");
 
     private final int code;           // HTTP status
     private final String messageCode; // 프론트 messages.ts 매핑 키 (SURxxx)

@@ -26,11 +26,17 @@ public interface SurgeryScheduleService {
      */
     List<SurgeryStatusHistoryDto> getStatusHistory(String surgeryId, String statusType);
 
-    /** SL2-36: 정규 수술 등록 */
-    SurgeryDto registerSchedule(SurgeryDto request);
-
-    /** SL2-44: 응급 수술은 일정 충돌 검사 없이 우선 배정 (호출부에서 emergencyYn="Y" 세팅) */
-    SurgeryDto registerEmergencySchedule(SurgeryDto request);
+    /**
+     * 오더 수락 시 수술을 만든다 (surgeryorder → schedule 진입점)
+     *
+     * <p>수술실이 정해져 요청이 받아들여진 것이므로 <b>예약(01)</b>에서 시작한다.
+     * 요청접수(00)를 거치지 않는다 — 그 단계는 이제 SURGERY_ORDER 가 담당한다.</p>
+     *
+     * <p><b>왜 오더 서비스가 직접 저장하지 않고 여기로 오는가</b> — 수술을 만들 때
+     * 상태변경 이력을 함께 남겨야 하는데(SL2-282), 그 로직이 이 클래스에 있다.
+     * 저장을 두 곳에서 하면 한쪽만 이력을 빠뜨리게 된다.</p>
+     */
+    SurgeryDto createScheduledSurgery(SurgeryDto request);
 
     /** SL2-37: 일정/배정 수정 */
     SurgeryDto updateSchedule(String surgeryId, SurgeryDto request);
@@ -49,23 +55,6 @@ public interface SurgeryScheduleService {
 
     /** SL2-63: 간호사 배정 */
     SurgeryDto assignNurse(String surgeryId, String nurseId);
-
-    /** SL2-225: 배정 대기 목록 (status_cd = 요청접수). 응급 건이 먼저 나온다. */
-    /**
-     * SL2-225/235/236: 배정 대기 목록 (검색 + 페이지 단위)
-     *
-     * <p>전체 목록을 돌려주던 것을 페이지 단위로 바꿨다. 요청이 쌓이면 한 번에 다 내려받게 되고,
-     * 배정 담당자가 찾는 것은 보통 특정 환자나 특정 날짜의 건이다.</p>
-     *
-     * <p>검색 조건은 모두 선택이다. 아무것도 넣지 않으면 요청접수(00) 전체가 나온다.</p>
-     *
-     * @param emergencyYn 'Y'/'N'. null 이면 전체
-     * @param patientId 환자 식별자. null·공백이면 전체
-     * @param fromDt 희망일 시작. null 이면 하한 없음
-     * @param toDt 희망일 종료. null 이면 상한 없음
-     */
-    PageResponse<SurgeryDto> getRequestedSchedules(
-            String emergencyYn, String patientId, LocalDate fromDt, LocalDate toDt, Pageable pageable);
 
     /**
      * SL2-170: 수술실 배정 현황 조회
@@ -90,13 +79,7 @@ public interface SurgeryScheduleService {
     PageResponse<SurgeryDto> getAssignments(
             String roomCode, String statusCd, LocalDate fromDt, LocalDate toDt, Pageable pageable);
 
-    /**
-     * SL2-15: 수술 배정 — 수술실·마취의·간호사(및 조정 예정일)를 한 번에 채우고 예약으로 전이한다.
-     *
-     * <p>환자·집도의는 요청 주체(진료·응급실)가 확정한 값이라 여기서 바꾸지 않는다.
-     * 개별 배정 API(/surgeon, /room, /anesthesiologist, /nurse)는 배정 후 부분 변경용으로 남는다.</p>
-     */
-    SurgeryDto assignSurgery(String surgeryId, SurgeryDto request);
+    // SL2-15 일괄 배정은 SurgeryOrderService.assignOrder 로 옮겼다.
 
     /** 수술 시작 — 예약→진행중 전이 + 실제 시작일 기록 */
     SurgeryDto startSurgery(String surgeryId);

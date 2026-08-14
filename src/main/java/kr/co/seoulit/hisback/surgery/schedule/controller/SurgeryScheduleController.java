@@ -20,8 +20,8 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * 수술 스케줄링 컨트롤러
- * (SL2-25 조회 / SL2-36 등록 / SL2-44 응급등록 / SL2-37 수정 / SL2-33 취소 /
- *  SL2-13 집도의배정 / SL2-15 수술실배정 / SL2-43 마취의배정 / SL2-63 간호사배정 /
+ * (SL2-25 조회 / SL2-37 수정 / SL2-33 취소 /
+ *  SL2-13 집도의배정 / SL2-43 마취의배정 / SL2-63 간호사배정 / SL2-170 배정현황 /
  *  SL2-40 금일현황 / SL2-39 진행상태변경)
  * <p>프론트 api.ts의 /schedule 경로와 1:1로 맞췄다. 응답은 §11.3 ApiResponse&lt;T&gt;로 감싼다.</p>
  */
@@ -79,46 +79,8 @@ public class SurgeryScheduleController {
                 ApiResponse.success(surgeryScheduleService.getStatusHistory(surgeryId, type)));
     }
 
-    /**
-     * 배정 대기 목록 (SL2-225 조회 / SL2-235 페이징 / SL2-236 검색·필터)
-     *
-     * <p>{@code GET /api/surgery/schedule/requests}<br>
-     * {@code ...?emergencyYn=Y&patientId=P-1&fromDt=2026-08-01&toDt=2026-08-31&page=0&size=20}</p>
-     *
-     * <p>진료·응급실이 요청했으나 아직 수술실이 잡히지 않은 건(요청접수 00)이다.</p>
-     *
-     * <p><b>기본 정렬이 응급 우선인 이유</b> — 배정 담당자가 먼저 처리해야 할 것이 응급이다.
-     * emergency_yn 이 CHAR(1) 이라 내림차순이면 'Y' 가 'N' 보다 앞선다(§14.2). 같은 등급이면
-     * 희망일이 빠른 순이다. 화면이 정렬을 바꾸고 싶으면 sort 파라미터로 덮어쓴다.</p>
-     *
-     * <p>검색 조건은 전부 선택이다. 아무것도 안 보내면 대기 전체가 나온다.</p>
-     */
-    @GetMapping("/requests")
-    public ResponseEntity<ApiResponse<PageResponse<SurgeryDto>>> getRequestedSchedules(
-            @RequestParam(required = false) String emergencyYn,
-            @RequestParam(required = false) String patientId,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDt,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDt,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String sort) {
-
-        Pageable pageable =
-                PageableSupport.of(
-                        page,
-                        size,
-                        sort,
-                        Sort.by(
-                                Sort.Order.desc("emergencyYn"),
-                                Sort.Order.asc("surgeryDt")));
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        surgeryScheduleService.getRequestedSchedules(
-                                emergencyYn, patientId, fromDt, toDt, pageable)));
-    }
+    // 배정 대기 목록은 오더로 옮겼다 — GET /api/surgery/orders?orderStatusCd=00
+    //   요청은 이제 SURGERY 가 아니라 SURGERY_ORDER 로 들어온다(2026-08-13 결정).
 
     /**
      * SL2-170: 수술실 배정 현황 조회
@@ -157,21 +119,8 @@ public class SurgeryScheduleController {
                                 roomCode, statusCd, fromDt, toDt, pageable)));
     }
 
-    //registerSchedule은 POST 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ResponseEntity로 받아 전달한다
-    @PostMapping
-    public ResponseEntity<ApiResponse<SurgeryDto>> registerSchedule(@Valid @RequestBody SurgeryDto request) {
-        SurgeryDto created = surgeryScheduleService.registerSchedule(request);
-        return ResponseEntity.status(201).body(ApiResponse.success(201, created));
-    }
-
-    //registerEmergencySchedule은 POST 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
-    // SL2-44: 응급 수술은 일정 충돌 검사 없이 우선 배정된다
-    @PostMapping("/emergency")
-    public ResponseEntity<ApiResponse<SurgeryDto>> registerEmergencySchedule(
-            @Valid @RequestBody SurgeryDto request) {
-        SurgeryDto created = surgeryScheduleService.registerEmergencySchedule(request);
-        return ResponseEntity.status(201).body(ApiResponse.success(201, created));
-    }
+    // 수술 등록(진료·응급)은 오더로 옮겼다 — POST /api/surgery/orders, /orders/emergency
+    //   수술은 오더가 수락(배정)될 때 만들어지므로, 여기서 직접 만드는 경로는 두지 않는다.
 
     //updateSchedule은 PUT 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
     @PutMapping("/{surgeryId}")
@@ -201,14 +150,7 @@ public class SurgeryScheduleController {
                 ApiResponse.success(surgeryScheduleService.cancelSchedule(surgeryId, reasonCd)));
     }
 
-    // SL2-15: 수술 배정 — 수술실·마취의·간호사를 한 번에 채우고 요청접수→예약으로 전이한다.
-    // 아래 개별 배정 API(/surgeon, /room, ...)는 배정 후 부분 변경용으로 남긴다.
-    @PatchMapping("/{surgeryId}/assign")
-    public ResponseEntity<ApiResponse<SurgeryDto>> assignSurgery(
-            @PathVariable String surgeryId, @Valid @RequestBody SurgeryDto request) {
-        return ResponseEntity.ok(
-                ApiResponse.success(surgeryScheduleService.assignSurgery(surgeryId, request)));
-    }
+    // SL2-15 일괄 배정은 오더로 옮겼다 — PATCH /api/surgery/orders/{orderId}/assign
 
     // 수술 시작 — 예약→진행중 전이 + 실제 시작일 기록. 완료(/end)와 한 쌍이다.
     @PatchMapping("/{surgeryId}/start")

@@ -13,14 +13,17 @@ import java.util.Set;
  *
  * <h3>허용 전이</h3>
  * <pre>
- *   00 요청접수 ──▶ 01 예약        (배정)
- *              └─▶ 04 취소        (반려)
- *   01 예약     ──▶ 02 진행중      (시작)
- *              └─▶ 04 취소
- *   02 진행중   ──▶ 03 완료
- *   03 완료     ──▶ (없음)
- *   04 취소     ──▶ (없음)
+ *   01 예약   ──▶ 02 진행중   (시작)
+ *            └─▶ 04 취소
+ *   02 진행중 ──▶ 03 완료
+ *   03 완료   ──▶ (없음)
+ *   04 취소   ──▶ (없음)
  * </pre>
+ *
+ * <p><b>요청접수(00)가 표에서 빠진 이유</b>(2026-08-13) — 수술은 오더가 수락(배정)될 때
+ * 만들어지므로 예약(01)에서 시작한다. 요청 단계는 이제 수술이 아니라 SURGERY_ORDER 의
+ * 상태({@code OrderStatus.RECEIVED})다. 상수 자체는 남겨 둔다 — 이미 저장된 이력의
+ * {@code before_cd='00'} 을 읽을 때 필요하다.</p>
  *
  * <p><b>완료·취소는 종착점이다.</b> §21.6 이 삭제 대신 상태 변경을 권하지만, 그렇다고
  * 끝난 수술을 되돌리는 문을 열어두면 이력이 뒤엉킨다. 잘못 완료 처리한 경우는
@@ -43,8 +46,6 @@ public final class SurgeryStatusTransition {
      */
     private static final Map<String, Set<String>> ALLOWED =
             Map.of(
-                    SurgeryStatus.REQUESTED,
-                            Set.of(SurgeryStatus.SCHEDULED, SurgeryStatus.CANCELLED),
                     SurgeryStatus.SCHEDULED,
                             Set.of(SurgeryStatus.IN_PROGRESS, SurgeryStatus.CANCELLED),
                     SurgeryStatus.IN_PROGRESS, Set.of(SurgeryStatus.COMPLETED),

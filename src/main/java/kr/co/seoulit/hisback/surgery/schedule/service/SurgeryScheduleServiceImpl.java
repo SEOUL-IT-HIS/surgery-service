@@ -167,40 +167,31 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         return toDto(findOrThrow(surgeryId));
     }
 
+    // SL2-36 수술 요청 등록은 SurgeryOrderService.createOrder 로 옮겼다.
+    //   요청은 SURGERY 가 아니라 SURGERY_ORDER 로 들어온다(2026-08-13 결정).
+
     /**
-     * SL2-36: 수술 요청 등록 (진료가 호출)
+     * 오더 수락 시 수술 생성 (surgeryorder 가 호출)
      *
-     * <p>수술실이 아직 배정되지 않았으므로 '요청접수'로 시작한다. 수술실 담당자가
-     * {@link #assignSurgery} 로 배정해야 '예약'이 되며, 그 전까지는 배정 대기 목록에 뜬다.</p>
+     * <p>수술실이 정해진 뒤에 불리므로 <b>예약(01)</b>에서 시작한다. 이력의 첫 줄도
+     * {@code null → 01} 이다 — 요청접수(00)는 이제 수술이 아니라 오더의 상태다.</p>
      *
-     * <p>상태와 응급여부는 클라이언트 값을 쓰지 않고 <b>호출한 엔드포인트가 결정</b>한다.
-     * statusCd 를 받아주면 배정을 건너뛴 등록이 생기고, emergencyYn 을 받아주면 일반 요청이
-     * 응급으로 둔갑해 배정 우선순위를 가로챈다.</p>
+     * <p>응급 여부는 오더가 정한 값을 그대로 옮겨 받는다. 여기서 다시 판단하지 않는다.</p>
      */
     @Override
     @Transactional
-    public SurgeryDto registerSchedule(SurgeryDto request) {
+    public SurgeryDto createScheduledSurgery(SurgeryDto request) {
         Surgery surgery = fromRequest(request);
-        surgery.setStatusCd(SurgeryStatus.REQUESTED);
-        surgery.setEmergencyYn("N");
+        surgery.setStatusCd(SurgeryStatus.SCHEDULED);
+        surgery.setEmergencyYn(
+                "Y".equals(request.getEmergencyYn()) ? "Y" : "N");
         Surgery saved = surgeryRepository.save(surgery);
-        // 등록은 저장 뒤에 남긴다 — PK 가 저장 시점에 정해지기 때문이다.
-        // 최초 등록이라 이전 값이 없어 beforeCd 는 null 이다.
-        recordHistory(saved.getSurgeryId(), StatusChangeType.STATUS, null, SurgeryStatus.REQUESTED, null);
+        recordHistory(
+                saved.getSurgeryId(), StatusChangeType.STATUS, null, SurgeryStatus.SCHEDULED, null);
         return toDto(saved);
     }
 
-    /** SL2-44: 응급 수술 요청 등록 (응급실이 호출). 동일하게 요청접수이며 emergencyYn=Y 로 고정한다. */
-    @Override
-    @Transactional
-    public SurgeryDto registerEmergencySchedule(SurgeryDto request) {
-        Surgery surgery = fromRequest(request);
-        surgery.setStatusCd(SurgeryStatus.REQUESTED);
-        surgery.setEmergencyYn("Y");
-        Surgery saved = surgeryRepository.save(surgery);
-        recordHistory(saved.getSurgeryId(), StatusChangeType.STATUS, null, SurgeryStatus.REQUESTED, null);
-        return toDto(saved);
-    }
+    // SL2-44 응급 요청 등록도 오더로 옮겼다 — POST /api/surgery/orders/emergency
 
     /**
      * SL2-37: 수술 스케줄 수정 (SL2-188 결과·연관 배정 정보 갱신)
@@ -226,10 +217,10 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     public SurgeryDto updateSchedule(String surgeryId, SurgeryDto request) {
         Surgery surgery = findOrThrow(surgeryId);
 
-        // 요청접수(00)·예약(01)만 수정 대상이다. 진행중은 수술이 이미 시작돼 일정을
-        //   바꾸는 것이 무의미하고, 완료·취소는 확정된 기록이다.
-        if (!SurgeryStatus.REQUESTED.equals(surgery.getStatusCd())
-                && !SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
+        // 예약(01)만 수정 대상이다. 수술은 예약에서 시작하므로(오더 수락 시 생성) 그 앞
+        //   단계가 없고, 진행중은 이미 시작돼 일정을 바꾸는 것이 무의미하며,
+        //   완료·취소는 확정된 기록이다.
+        if (!SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
             throw new BusinessException(
                     ErrorCode.INVALID_SURGERY_STATUS, "수정 시도 상태=" + surgery.getStatusCd());
         }
@@ -316,8 +307,8 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      * updateSchedule(SL2-188)에는 같은 제한을 걸어 뒀는데 이 네 개가 우회로였다.</p>
      */
     private void requireAssignable(Surgery surgery) {
-        if (!SurgeryStatus.REQUESTED.equals(surgery.getStatusCd())
-                && !SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
+        // 수술은 예약(01)에서 시작한다 — 요청접수(00)는 이제 오더의 상태다.
+        if (!SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
             throw new BusinessException(
                     ErrorCode.INVALID_SURGERY_STATUS, "배정 변경 시도 상태=" + surgery.getStatusCd());
         }
@@ -412,37 +403,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         return toDto(surgeryRepository.save(surgery));
     }
 
-    /**
-     * SL2-225/235/236: 배정 대기 목록 (검색 + 페이지 단위)
-     *
-     * <p>정렬은 {@link Pageable} 이 들고 온다. 기본값(응급 우선)은 컨트롤러가 정하므로
-     * 여기서는 정렬을 신경 쓰지 않는다.</p>
-     *
-     * <p><b>빈 문자열을 null 로 바꿔 넘기는 이유</b> — 화면 검색창을 비워 보내면
-     * {@code patientId=""} 가 온다. 그대로 넘기면 "환자ID 가 빈 문자열인 건"을 찾게 되어
-     * 결과가 0건이 된다. 비어 있는 것은 "조건 없음"으로 다뤄야 한다.</p>
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<SurgeryDto> getRequestedSchedules(
-            String emergencyYn, String patientId, LocalDate fromDt, LocalDate toDt, Pageable pageable) {
-
-        Page<Surgery> result =
-                surgeryRepository.searchByStatus(
-                        SurgeryStatus.REQUESTED,
-                        blankToNull(emergencyYn),
-                        blankToNull(patientId),
-                        fromDt,
-                        toDt,
-                        pageable);
-
-        return new PageResponse<>(
-                result.getContent().stream().map(this::toDto).collect(Collectors.toList()),
-                result.getNumber(),
-                result.getSize(),
-                result.getTotalElements(),
-                result.getTotalPages());
-    }
+    // SL2-225/235/236 배정 대기 목록은 오더로 옮겼다 — SurgeryOrderService.getOrders
 
     /**
      * SL2-170: 수술실 배정 현황 조회
@@ -471,40 +432,9 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         return (value == null || value.isBlank()) ? null : value;
     }
 
-    /**
-     * SL2-15: 수술 배정 (요청접수 → 예약)
-     *
-     * <p>수술실은 배정의 핵심이라 필수, 마취의·간호사는 나중에 채워도 되므로 선택이다.
-     * 요청자가 올린 희망일은 수술실 사정에 맞춰 조정할 수 있고, 값이 없으면 기존 일자를 유지한다.</p>
-     *
-     * <p>환자·집도의를 건드리지 않는 이유 — 진료·응급실이 확정한 값이라 배정에서 바꾸면
-     * 요청 자체가 뒤바뀐다. 집도의 변경이 필요하면 별도 API(/surgeon)나 수정(PUT)으로 처리한다.</p>
-     */
-    @Override
-    @Transactional
-    public SurgeryDto assignSurgery(String surgeryId, SurgeryDto request) {
-        Surgery surgery = findOrThrow(surgeryId);
-        requireTransition(surgery.getStatusCd(), SurgeryStatus.SCHEDULED);
-        if (request.getRoomCode() == null || request.getRoomCode().isBlank()) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "roomCode 누락");
-        }
-
-        surgery.setRoomCode(request.getRoomCode());
-        if (request.getAnesthesiologistId() != null) {
-            surgery.setAnesthesiologistId(request.getAnesthesiologistId());
-        }
-        if (request.getNurseId() != null) {
-            surgery.setNurseId(request.getNurseId());
-        }
-        if (request.getSurgeryDt() != null) {
-            surgery.setSurgeryDt(request.getSurgeryDt());
-        }
-        String before = surgery.getStatusCd();
-        surgery.setStatusCd(SurgeryStatus.SCHEDULED);
-        Surgery saved = surgeryRepository.save(surgery);
-        recordHistory(surgeryId, StatusChangeType.STATUS, before, SurgeryStatus.SCHEDULED, null);
-        return toDto(saved);
-    }
+    // SL2-15 일괄 배정(요청접수→예약)은 오더로 옮겼다 — PATCH /api/surgery/orders/{orderId}/assign
+    //   수술은 배정이 끝난 뒤에 만들어지므로, 수술에 다시 배정을 거는 단계가 없다.
+    //   배정 후 부분 변경은 아래 개별 배정 4종(/surgeon, /room, ...)이 담당한다.
 
     /** 수술 시작 — 예약 상태에서만 가능하며 실제 시작일을 남긴다. */
     @Override

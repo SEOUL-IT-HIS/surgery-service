@@ -40,10 +40,21 @@ public class SurgeryStatusDto {
      *
      * <p>취소를 빼면 "오늘 3건이었는데 왜 2건으로 보이나" 하는 질문이 생긴다.
      * 취소도 그 날 있었던 일이므로 세되, cancelledCount 로 따로 구분해 보여준다.</p>
+     *
+     * <p>아직 수락되지 않은 오더는 여기 들어오지 않는다 — 수술이 아직 없기 때문이다.</p>
      */
     private long totalCount;
 
-    /** 요청접수 (SurgeryStatus.REQUESTED = "00") — 아직 배정 전이라 조치가 필요한 건 */
+    /**
+     * 접수 대기 오더 수 — 아직 배정되지 않아 조치가 필요한 요청.
+     *
+     * <p><b>이것만 수술이 아니라 오더를 센다</b>(2026-08-13). 요청 단계가 SURGERY_ORDER 로
+     * 옮겨져 요청접수(00) 상태의 수술이 더는 생기지 않기 때문이다. 나머지 항목은 모두
+     * 그 날의 수술을 센다.</p>
+     *
+     * <p>그래서 <b>이 값은 아래 상태별 건수와 합산되지 않는다</b>. 상태 4개(예약·진행중·
+     * 완료·취소)를 더하면 totalCount 가 되지만, 여기에 requestedCount 를 더하면 안 된다.</p>
+     */
     private long requestedCount;
 
     /** 예약 (SurgeryStatus.SCHEDULED = "01") — 배정 완료, 시작 대기 */

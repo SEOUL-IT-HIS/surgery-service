@@ -1,6 +1,7 @@
 package kr.co.seoulit.hisback.surgery.monitoring.service;
 
 import java.time.LocalDate;
+import org.springframework.data.domain.PageRequest;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,6 +12,8 @@ import kr.co.seoulit.hisback.surgery.room.repository.OperatingRoomRepository;
 import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
 import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
 import kr.co.seoulit.hisback.surgery.schedule.type.SurgeryStatus;
+import kr.co.seoulit.hisback.surgery.surgeryorder.repository.SurgeryOrderRepository;
+import kr.co.seoulit.hisback.surgery.surgeryorder.type.OrderStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,13 +48,24 @@ public class SurgeryMonitoringServiceImpl implements SurgeryMonitoringService {
     private final SurgeryRepository surgeryRepository;
     private final OperatingRoomRepository operatingRoomRepository;
 
+    /**
+     * 접수 대기 오더를 세기 위한 것 (2026-08-13).
+     *
+     * <p>예전에는 요청접수(00) 수술을 셌지만, 요청이 SURGERY_ORDER 로 옮겨져 그 상태의
+     * 수술이 더는 생기지 않는다. 대시보드가 "아직 배정 안 된 요청"을 보여주려면
+     * 오더를 봐야 한다.</p>
+     */
+    private final SurgeryOrderRepository surgeryOrderRepository;
+
     // 생성자 주입 — 필드에 @Autowired 를 붙이지 않는다. 생성자로 받으면 의존성이
     //   빠졌을 때 기동 시점에 바로 드러나고, final 로 둘 수 있어 나중에 바뀌지 않는다.
     public SurgeryMonitoringServiceImpl(
             SurgeryRepository surgeryRepository,
-            OperatingRoomRepository operatingRoomRepository) {
+            OperatingRoomRepository operatingRoomRepository,
+            SurgeryOrderRepository surgeryOrderRepository) {
         this.surgeryRepository = surgeryRepository;
         this.operatingRoomRepository = operatingRoomRepository;
+        this.surgeryOrderRepository = surgeryOrderRepository;
     }
 
     @Override
@@ -70,7 +84,7 @@ public class SurgeryMonitoringServiceImpl implements SurgeryMonitoringService {
         return SurgeryStatusDto.builder()
                 .surgeryDt(target)
                 .totalCount(surgeries.size())
-                .requestedCount(countByStatus(surgeries, SurgeryStatus.REQUESTED))
+                .requestedCount(countReceivedOrders(target))
                 .scheduledCount(countByStatus(surgeries, SurgeryStatus.SCHEDULED))
                 .inProgressCount(countByStatus(surgeries, SurgeryStatus.IN_PROGRESS))
                 .completedCount(countByStatus(surgeries, SurgeryStatus.COMPLETED))
@@ -139,6 +153,18 @@ public class SurgeryMonitoringServiceImpl implements SurgeryMonitoringService {
                 .currentSurgeryName(current != null ? current.getSurgeryName() : null)
                 .scheduledCount(scheduled)
                 .build();
+    }
+
+    /**
+     * 그 날 희망일로 들어온 오더 중 아직 접수(00) 상태인 건수.
+     *
+     * <p>수술이 아니라 <b>오더</b>를 센다. 페이지 크기 1 로 조회해 총건수만 받는다 —
+     * 목록이 필요한 게 아니라 개수만 필요하기 때문이다.</p>
+     */
+    private long countReceivedOrders(LocalDate target) {
+        return surgeryOrderRepository
+                .search(OrderStatus.RECEIVED, null, null, target, target, PageRequest.of(0, 1))
+                .getTotalElements();
     }
 
     /**
