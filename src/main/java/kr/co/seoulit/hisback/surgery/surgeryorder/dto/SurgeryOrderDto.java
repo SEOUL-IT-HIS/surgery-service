@@ -37,11 +37,23 @@ public class SurgeryOrderDto {
     /** 'Y'/'N' — 요청 경로가 정한다 */
     private String emergencyYn;
 
-    /** OrderStatus: 00접수 / 01수락 / 02반려 */
+    /** OrderStatus: 00접수 / 01수락 / 02반려 / 03취소 */
     private String orderStatusCd;
 
     /** 반려일 때만 값이 있다 */
     private String rejectReasonCd;
+
+    /**
+     * 취소 사유 코드 — 취소(03)일 때만 값이 있다.
+     *
+     * <p><b>SURGERY_ORDER 에는 이 컬럼이 없다.</b> 사유의 원본은 SURGERY 가 갖고 있고
+     * ({@code cancel_reason_cd}), 여기서는 조회 시점에 {@code surgery_id} 로 읽어 채운다.
+     * 오더에도 저장하면 수술 취소 사유를 정정했을 때 두 값이 어긋난다.</p>
+     *
+     * <p>그래도 응답에 넣는 이유 — 진료·응급이 "왜 무산됐나"를 알려면 이 값이 필요한데,
+     * 없으면 오더 조회 후 수술 조회까지 두 번 부르게 된다.</p>
+     */
+    private String cancelReasonCd;
 
     private String surgeryTypeCd;
 

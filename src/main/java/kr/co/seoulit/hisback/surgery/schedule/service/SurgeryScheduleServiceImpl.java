@@ -10,6 +10,7 @@ import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
 import kr.co.seoulit.hisback.surgery.room.entity.OperatingRoom;
 import kr.co.seoulit.hisback.surgery.room.repository.OperatingRoomRepository;
+import kr.co.seoulit.hisback.surgery.surgeryorder.service.SurgeryOrderCanceller;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
@@ -63,15 +64,27 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      */
     private final OperatingRoomRepository operatingRoomRepository;
 
+    /**
+     * SL2-179: 수술 취소를 오더에 반영하기 위한 협력자.
+     *
+     * <p><b>SurgeryOrderService 가 아니라 이 좁은 컴포넌트를 받는 이유</b> —
+     * {@code SurgeryOrderServiceImpl} 이 이미 이 서비스를 주입받고 있어서(배정 시 수술을
+     * 만들어야 한다) 반대 방향으로 서비스를 잡으면 생성자 순환참조가 된다.
+     * {@link SurgeryOrderCanceller} 는 오더 리포지토리 하나에만 의존해 순환이 생기지 않는다.</p>
+     */
+    private final SurgeryOrderCanceller surgeryOrderCanceller;
+
     public SurgeryScheduleServiceImpl(
             SurgeryRepository surgeryRepository,
             SurgeryStatusHistoryRepository historyRepository,
             CommonCodeCache commonCodeCache,
-            OperatingRoomRepository operatingRoomRepository) {
+            OperatingRoomRepository operatingRoomRepository,
+            SurgeryOrderCanceller surgeryOrderCanceller) {
         this.surgeryRepository = surgeryRepository;
         this.historyRepository = historyRepository;
         this.commonCodeCache = commonCodeCache;
         this.operatingRoomRepository = operatingRoomRepository;
+        this.surgeryOrderCanceller = surgeryOrderCanceller;
     }
 
     /**
@@ -289,11 +302,21 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         // set 하기 전에 이전 값을 잡아야 한다 — 뒤에 읽으면 before 와 after 가 같아진다
         surgery.setStatusCd(SurgeryStatus.CANCELLED);
         surgery.setCancelReasonCd(cancelReasonCd);
-        // 배정 정보(수술실·집도의·마취의·간호사)는 여기서 지우지 않는다.
-        // 일괄 해제 여부는 SL2-179 에서 별도로 다룬다 — 이력 보존과 자원 반납이 상충해 판단이 필요하다.
+        // SL2-179: 배정 정보(수술실·집도의·마취의·간호사)는 지우지 않는다.
+        //
+        //   요구사항 문구는 "일괄 해제"지만, 해제의 목적인 '자원이 묶여 보이지 않게'는 이미
+        //   달성돼 있다 — 모니터링의 inUse 는 진행중만 보고, scheduledCount 와 미배정 집계는
+        //   취소를 제외한다. 반면 지우면 "몇 번 방에 누가 잡혀 있었나"가 사라지고, 집도의는
+        //   NOT NULL 이라 제약까지 풀어야 한다.
+        //
+        //   실제로 어긋나 있던 것은 요청자가 결과를 모른다는 쪽이었다. 아래에서 오더를
+        //   취소(03)로 바꾼다. 판단 근거는 SurgeryOrderCanceller 에 적었다. (2026-08-14)
         Surgery saved = surgeryRepository.save(surgery);
         // 취소는 사유가 있는 유일한 전이라 reasonCd 를 함께 남긴다
         recordHistory(surgeryId, StatusChangeType.STATUS, before, SurgeryStatus.CANCELLED, cancelReasonCd);
+
+        // 같은 트랜잭션에서 처리한다 — 수술만 취소되고 오더는 수락으로 남는 상태를 만들지 않는다.
+        surgeryOrderCanceller.cancelBySurgery(surgeryId);
         return toDto(saved);
     }
 

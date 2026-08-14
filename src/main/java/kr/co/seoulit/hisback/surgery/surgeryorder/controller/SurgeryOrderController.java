@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/surgery/orders")
-public class SurgeryOrderController {
+public class   SurgeryOrderController {
 
     private final SurgeryOrderService surgeryOrderService;
 

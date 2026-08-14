@@ -10,6 +10,8 @@ import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
 import kr.co.seoulit.hisback.surgery.room.entity.OperatingRoom;
 import kr.co.seoulit.hisback.surgery.room.repository.OperatingRoomRepository;
 import kr.co.seoulit.hisback.surgery.schedule.dto.SurgeryDto;
+import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
+import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
 import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryScheduleService;
 import kr.co.seoulit.hisback.surgery.surgeryorder.dto.AssignSurgeryOrderRequest;
 import kr.co.seoulit.hisback.surgery.surgeryorder.dto.CreateSurgeryOrderRequest;
@@ -50,15 +52,26 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
     private final SurgeryScheduleService surgeryScheduleService;
     private final CommonCodeCache commonCodeCache;
 
+    /**
+     * 취소 사유를 읽기 위해서만 쓴다 — <b>읽기 전용</b>이다.
+     *
+     * <p>수술을 만들거나 고치는 일은 {@link SurgeryScheduleService} 를 거친다. 여기서
+     * 리포지토리를 직접 잡은 이유는 사유 한 컬럼을 읽자고 서비스 메서드를 늘리고 싶지
+     * 않아서이고, 같은 이유로 {@code OperatingRoomRepository} 도 직접 쓰고 있다.</p>
+     */
+    private final SurgeryRepository surgeryRepository;
+
     public SurgeryOrderServiceImpl(
             SurgeryOrderRepository surgeryOrderRepository,
             OperatingRoomRepository operatingRoomRepository,
             SurgeryScheduleService surgeryScheduleService,
-            CommonCodeCache commonCodeCache) {
+            CommonCodeCache commonCodeCache,
+            SurgeryRepository surgeryRepository) {
         this.surgeryOrderRepository = surgeryOrderRepository;
         this.operatingRoomRepository = operatingRoomRepository;
         this.surgeryScheduleService = surgeryScheduleService;
         this.commonCodeCache = commonCodeCache;
+        this.surgeryRepository = surgeryRepository;
     }
 
     @Override
@@ -80,7 +93,7 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
                         pageable);
 
         return new PageResponse<>(
-                result.getContent().stream().map(this::toDto).collect(Collectors.toList()),
+                toDto(result.getContent()),
                 result.getNumber(),
                 result.getSize(),
                 result.getTotalElements(),
@@ -225,8 +238,66 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
         return (value == null || value.isBlank()) ? null : value;
     }
 
-    /** 엔티티 → DTO. 필드 순서는 DTO 선언 순서와 같아야 한다(@AllArgsConstructor 는 순서로 받는다). */
+    /**
+     * 취소된 오더 하나의 취소 사유를 수술에서 읽는다.
+     *
+     * <p>취소(03)가 아니거나 연결된 수술이 없으면 null 이다. 목록에서는 이 메서드를 쓰지
+     * 말 것 — 행마다 한 번씩 조회하게 된다({@link #toDto(java.util.List)} 참고).</p>
+     */
+    private String readCancelReason(SurgeryOrder o) {
+        if (!OrderStatus.CANCELLED.equals(o.getOrderStatusCd()) || o.getSurgeryId() == null) {
+            return null;
+        }
+        return surgeryRepository
+                .findById(o.getSurgeryId())
+                .map(Surgery::getCancelReasonCd)
+                .orElse(null);
+    }
+
+    /**
+     * 목록 변환 — 취소 사유를 <b>한 번에</b> 읽는다.
+     *
+     * <p>행마다 {@code findById} 를 부르면 N+1 이 된다. 취소 상태로 걸러 조회한 목록이면
+     * 모든 행이 취소라 그 부담이 그대로 드러난다. 취소된 행의 surgeryId 만 모아
+     * {@code findAllById} 로 한 번 읽고 맵으로 맞춘다.</p>
+     *
+     * <p>취소 건이 하나도 없으면 추가 조회 자체를 하지 않는다 — 대부분의 목록이 그렇다.</p>
+     */
+    private java.util.List<SurgeryOrderDto> toDto(java.util.List<SurgeryOrder> orders) {
+        java.util.List<String> cancelledSurgeryIds =
+                orders.stream()
+                        .filter(o -> OrderStatus.CANCELLED.equals(o.getOrderStatusCd()))
+                        .map(SurgeryOrder::getSurgeryId)
+                        .filter(java.util.Objects::nonNull)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+        java.util.Map<String, String> reasonBySurgeryId =
+                cancelledSurgeryIds.isEmpty()
+                        ? java.util.Map.of()
+                        : surgeryRepository.findAllById(cancelledSurgeryIds).stream()
+                                .filter(s -> s.getCancelReasonCd() != null)
+                                .collect(
+                                        Collectors.toMap(Surgery::getSurgeryId, Surgery::getCancelReasonCd));
+
+        return orders.stream()
+                .map(
+                        o ->
+                                toDto(
+                                        o,
+                                        o.getSurgeryId() == null
+                                                ? null
+                                                : reasonBySurgeryId.get(o.getSurgeryId())))
+                .collect(Collectors.toList());
+    }
+
+    /** 단건 변환 — 취소 사유까지 채운다. */
     private SurgeryOrderDto toDto(SurgeryOrder o) {
+        return toDto(o, readCancelReason(o));
+    }
+
+    /** 엔티티 → DTO. 필드 순서는 DTO 선언 순서와 같아야 한다(@AllArgsConstructor 는 순서로 받는다). */
+    private SurgeryOrderDto toDto(SurgeryOrder o, String cancelReasonCd) {
         return new SurgeryOrderDto(
                 o.getOrderId(),
                 o.getPatientId(),
@@ -236,6 +307,7 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
                 o.getEmergencyYn(),
                 o.getOrderStatusCd(),
                 o.getRejectReasonCd(),
+                cancelReasonCd,
                 o.getSurgeryTypeCd(),
                 o.getSurgeryName(),
                 o.getOrderedBy(),
