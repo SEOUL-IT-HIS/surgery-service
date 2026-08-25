@@ -436,11 +436,23 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<SurgeryDto> getAssignments(
-            String roomCode, String statusCd, LocalDate fromDt, LocalDate toDt, Pageable pageable) {
+            String roomCode,
+            String statusCd,
+            String patientId,
+            String surgeonId,
+            LocalDate fromDt,
+            LocalDate toDt,
+            Pageable pageable) {
 
         Page<Surgery> result =
                 surgeryRepository.searchAssignments(
-                        blankToNull(roomCode), blankToNull(statusCd), fromDt, toDt, pageable);
+                        blankToNull(roomCode),
+                        blankToNull(statusCd),
+                        blankToNull(patientId),
+                        blankToNull(surgeonId),
+                        fromDt,
+                        toDt,
+                        pageable);
 
         return new PageResponse<>(
                 result.getContent().stream().map(this::toDto).collect(Collectors.toList()),

@@ -73,11 +73,19 @@ public interface SurgeryScheduleService {
      *
      * @param roomCode 수술실 코드. null 이면 전체(미배정 건도 포함된다)
      * @param statusCd 수술 상태. null 이면 전체(취소 건도 섞인다)
+     * @param patientId 환자 식별자. null 이면 전체. 이름이 아니라 식별자로만 찾는다(§21.9)
+     * @param surgeonId 집도의 식별자. null 이면 전체
      * @param fromDt 수술일 시작. null 이면 하한 없음
      * @param toDt 수술일 종료. null 이면 상한 없음
      */
     PageResponse<SurgeryDto> getAssignments(
-            String roomCode, String statusCd, LocalDate fromDt, LocalDate toDt, Pageable pageable);
+            String roomCode,
+            String statusCd,
+            String patientId,
+            String surgeonId,
+            LocalDate fromDt,
+            LocalDate toDt,
+            Pageable pageable);
 
     // SL2-15 일괄 배정은 SurgeryOrderService.assignOrder 로 옮겼다.
 

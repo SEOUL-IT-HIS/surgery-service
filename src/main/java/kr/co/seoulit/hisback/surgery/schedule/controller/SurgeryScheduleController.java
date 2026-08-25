@@ -102,6 +102,8 @@ public class SurgeryScheduleController {
     public ResponseEntity<ApiResponse<PageResponse<SurgeryDto>>> getAssignments(
             @RequestParam(required = false) String roomCode,
             @RequestParam(required = false) String statusCd,
+            @RequestParam(required = false) String patientId,
+            @RequestParam(required = false) String surgeonId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDt,
             @RequestParam(required = false)
@@ -116,7 +118,7 @@ public class SurgeryScheduleController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         surgeryScheduleService.getAssignments(
-                                roomCode, statusCd, fromDt, toDt, pageable)));
+                                roomCode, statusCd, patientId, surgeonId, fromDt, toDt, pageable)));
     }
 
     // 수술 등록(진료·응급)은 오더로 옮겼다 — POST /api/surgery/orders, /orders/emergency

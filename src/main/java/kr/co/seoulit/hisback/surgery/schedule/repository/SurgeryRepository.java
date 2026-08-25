@@ -32,16 +32,29 @@ public interface SurgeryRepository extends JpaRepository<Surgery, String> {
      * <p>취소(04)는 기본적으로 섞인다 — 상태를 지정하지 않으면 전부 나온다. 취소를 빼고
      * 보려면 {@code statusCd} 를 주면 된다. 여기서 임의로 제외하지 않는 이유는
      * "그날 그 방에 무엇이 있었나"에 취소도 사실이기 때문이다.</p>
+     *
+     * <p><b>환자·집도의 조건 추가</b>(2026-08-25, SL2-314·334) — 수술 기록지와 간호기록
+     * 조회 화면이 "환자·수술일자·수술실·집도의"로 찾기를 요구한다. 앞의 둘만 있어서
+     * 화면이 전건을 받아 스스로 거르는 수밖에 없었는데, 그러면 건수가 늘 때 목록 전체를
+     * 내려받게 되고 페이징도 의미가 없어진다.</p>
+     *
+     * <p>환자·집도의는 다른 서비스가 소유한 식별자라 <b>정확히 일치</b>로만 찾는다(§21.9).
+     * 이름으로 찾으려면 그쪽 서비스에서 식별자를 받아와야 한다 — 우리가 이름을 갖고
+     * 있지 않으므로 like 검색은 애초에 불가능하다.</p>
      */
     @Query(
             "select s from Surgery s "
                     + "where (:roomCode is null or s.roomCode = :roomCode) "
                     + "and (:statusCd is null or s.statusCd = :statusCd) "
+                    + "and (:patientId is null or s.patientId = :patientId) "
+                    + "and (:surgeonId is null or s.surgeonId = :surgeonId) "
                     + "and (:fromDt is null or s.surgeryDt >= :fromDt) "
                     + "and (:toDt is null or s.surgeryDt <= :toDt)")
     Page<Surgery> searchAssignments(
             @Param("roomCode") String roomCode,
             @Param("statusCd") String statusCd,
+            @Param("patientId") String patientId,
+            @Param("surgeonId") String surgeonId,
             @Param("fromDt") LocalDate fromDt,
             @Param("toDt") LocalDate toDt,
             Pageable pageable);
