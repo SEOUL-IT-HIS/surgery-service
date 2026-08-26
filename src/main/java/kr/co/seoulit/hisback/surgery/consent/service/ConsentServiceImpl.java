@@ -102,6 +102,13 @@ public class ConsentServiceImpl implements ConsentService {
      */
     @Override
     public ConsentDto createConsent(ConsentDto request) {
+        // SL2-216: 대상 수술이 실제로 있는지 먼저 본다(2026-08-26).
+        //
+        //   없으면 404 SUR035. 이 검사가 없던 동안에는 오타로 잘못된 surgery_id 를 보내도
+        //   동의서가 그대로 저장됐고, 그 행은 어느 수술에도 붙지 않은 채 남았다.
+        //   조회 쪽은 이미 SurgeryGuard 를 쓰고 있었는데 등록만 빠져 있었다.
+        surgeryGuard.requireExists(request.getSurgeryId());
+
         // 동의서 종류가 admin 에 등록된 값인지 확인한다(2026-08-25 연결).
         //
         //   그룹이 없으면 건너뛴다 — 다른 코드 검증과 같은 방식이다. 종류를 아예 안 보내는

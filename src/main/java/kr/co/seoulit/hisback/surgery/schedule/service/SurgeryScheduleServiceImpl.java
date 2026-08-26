@@ -8,6 +8,8 @@ import kr.co.seoulit.hisback.surgery.common.cache.CommonCodeCache;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import kr.co.seoulit.hisback.surgery.consent.repository.ConsentRepository;
+import kr.co.seoulit.hisback.surgery.consent.type.ConsentType;
 import kr.co.seoulit.hisback.surgery.room.entity.OperatingRoom;
 import kr.co.seoulit.hisback.surgery.room.repository.OperatingRoomRepository;
 import kr.co.seoulit.hisback.surgery.surgeryorder.service.SurgeryOrderCanceller;
@@ -82,17 +84,27 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      */
     private final SurgeryOrderCanceller surgeryOrderCanceller;
 
+    /**
+     * SL2-217: 수술 시작 전 동의서 확인용 — <b>읽기 전용</b>이다.
+     *
+     * <p>ConsentService 가 아니라 리포지토리를 직접 잡은 이유는 "있는가" 하나만 묻기
+     * 때문이다. AnesthesiaRecordServiceImpl 도 같은 방식으로 쓰고 있다.</p>
+     */
+    private final ConsentRepository consentRepository;
+
     public SurgeryScheduleServiceImpl(
             SurgeryRepository surgeryRepository,
             SurgeryStatusHistoryRepository historyRepository,
             CommonCodeCache commonCodeCache,
             OperatingRoomRepository operatingRoomRepository,
-            SurgeryOrderCanceller surgeryOrderCanceller) {
+            SurgeryOrderCanceller surgeryOrderCanceller,
+            ConsentRepository consentRepository) {
         this.surgeryRepository = surgeryRepository;
         this.historyRepository = historyRepository;
         this.commonCodeCache = commonCodeCache;
         this.operatingRoomRepository = operatingRoomRepository;
         this.surgeryOrderCanceller = surgeryOrderCanceller;
+        this.consentRepository = consentRepository;
     }
 
     /**
@@ -486,6 +498,18 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         Surgery surgery = findOrThrow(surgeryId);
         String before = surgery.getStatusCd();
         requireTransition(before, SurgeryStatus.IN_PROGRESS);
+
+        // SL2-217: 수술 동의서가 없으면 시작할 수 없다(2026-08-26).
+        //
+        //   환자 동의 없이 시작한 수술은 의무기록으로 성립하지 않는다. 마취기록이
+        //   마취 동의서(02)를 요구하는 것과 같은 성격의 규칙이고, 그쪽 구현을 따랐다.
+        //
+        //   수술 동의서(01)만 본다 — 마취 동의서는 마취기록을 쓸 때 그쪽이 검사한다.
+        //   여기서 둘 다 요구하면 마취 없는 수술(국소마취 등)이 시작조차 못 한다.
+        if (!consentRepository.existsBySurgeryIdAndConsentTypeCd(surgeryId, ConsentType.SURGERY)) {
+            throw new BusinessException(
+                    ErrorCode.CONSENT_NOT_CONFIRMED, "수술 동의서 미확인 surgeryId=" + surgeryId);
+        }
         surgery.setStatusCd(SurgeryStatus.IN_PROGRESS);
         if (surgery.getActualStartDt() == null) {
             // actual_start_dt는 DDL상 DATE(§14.2 `_dt` = 날짜)라 LocalDate를 쓴다.
