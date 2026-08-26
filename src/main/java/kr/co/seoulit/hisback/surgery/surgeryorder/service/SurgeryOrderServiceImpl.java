@@ -42,8 +42,11 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
     /**
      * 반려 사유 코드 그룹.
      *
-     * <p>admin 에 아직 등록되지 않았다. 등록 전까지는 검증을 건너뛴다 — 코드가 없다고
-     * 반려 업무를 막을 수는 없다. 그룹이 생기면 검증이 저절로 살아난다.</p>
+     * <p>2026-08-25 admin 에 등록했다 — 01 환자 일정 지연 / 02 서류 미충족 /
+     * 03 수술 전 사망 / 04 수술실 사정 / 05 기타. 이제 검증이 실제로 걸린다.</p>
+     *
+     * <p>{@code hasGroup} 로 한 번 거르는 구조는 그대로 둔다 — 그룹이 사라지거나 캐시가
+     * 아직 안 돌았을 때 반려 업무 자체가 멈추는 것을 막는다.</p>
      */
     private static final String GROUP_REJECT_REASON = "SURGERY_ORDER_REJECT_CD";
 

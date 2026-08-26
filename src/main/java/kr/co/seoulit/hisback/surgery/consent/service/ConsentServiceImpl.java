@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import kr.co.seoulit.hisback.surgery.consent.dto.ConsentDto;
 import kr.co.seoulit.hisback.surgery.consent.entity.Consent;
 import kr.co.seoulit.hisback.surgery.consent.repository.ConsentRepository;
+import kr.co.seoulit.hisback.surgery.common.cache.CommonCodeCache;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryGuard;
@@ -24,16 +25,31 @@ import org.springframework.stereotype.Service;
 @Service
 public class ConsentServiceImpl implements ConsentService {
 
+    /**
+     * 동의서 종류 코드 그룹.
+     *
+     * <p>admin 에 이미 등록돼 있다 — 01 수술 / 02 마취 / 03 비용견적.
+     * 검사·영상이 같은 그룹에 CONTRAST·INVASIVE 를 함께 쓰고 있어, 우리 값만 골라
+     * 검증하지 않고 그룹 전체를 인정한다. 공용 그룹을 나눠 쓰는 것은 admin 소관이다(§21.4).</p>
+     */
+    private static final String GROUP_CONSENT_TYPE = "CONSENT_TYPE_CD";
+
     private final ConsentRepository consentRepository;
 
     /** SL2-223: 하위 목록 조회 전에 수술 존재를 확인한다 */
     private final SurgeryGuard surgeryGuard;
 
+    /** 동의서 종류가 admin 에 등록된 값인지 확인하는 데 쓴다 */
+    private final CommonCodeCache commonCodeCache;
+
     // 생성자가 하나뿐이라 @Autowired 없이도 Spring이 의존성을 주입한다
     public ConsentServiceImpl(
-            ConsentRepository consentRepository, SurgeryGuard surgeryGuard) {
+            ConsentRepository consentRepository,
+            SurgeryGuard surgeryGuard,
+            CommonCodeCache commonCodeCache) {
         this.consentRepository = consentRepository;
         this.surgeryGuard = surgeryGuard;
+        this.commonCodeCache = commonCodeCache;
     }
 
     /**
@@ -86,6 +102,19 @@ public class ConsentServiceImpl implements ConsentService {
      */
     @Override
     public ConsentDto createConsent(ConsentDto request) {
+        // 동의서 종류가 admin 에 등록된 값인지 확인한다(2026-08-25 연결).
+        //
+        //   그룹이 없으면 건너뛴다 — 다른 코드 검증과 같은 방식이다. 종류를 아예 안 보내는
+        //   경우도 막지 않는다. 필수 여부는 DTO 검증이 정할 일이지 코드값 검증의 몫이 아니다.
+        if (request.getConsentTypeCd() != null
+                && !request.getConsentTypeCd().isBlank()
+                && commonCodeCache.hasGroup(GROUP_CONSENT_TYPE)
+                && !commonCodeCache.isValid(GROUP_CONSENT_TYPE, request.getConsentTypeCd())) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST,
+                    GROUP_CONSENT_TYPE + "=" + request.getConsentTypeCd());
+        }
+
         if (consentRepository.existsBySurgeryIdAndConsentTypeCd(
                 request.getSurgeryId(), request.getConsentTypeCd())) {
             throw new BusinessException(

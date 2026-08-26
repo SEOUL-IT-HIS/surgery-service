@@ -80,8 +80,8 @@ public class SurgeryStatusHistory {
     /**
      * 사유 코드. 취소(04)처럼 이유가 있는 전이에만 채워진다.
      *
-     * <p>SURGERY_CANCEL_CD 그룹이 아직 admin 에 없어 지금은 값이 들어올 일이 없다.
-     * 등록되면 cancelSchedule 이 받은 사유를 여기에 함께 남긴다(SL2-227).</p>
+     * <p>SURGERY_CANCEL_CD 그룹을 2026-08-25 admin 에 등록해, cancelSchedule 이 받은 사유가
+     * 여기 함께 남는다(SL2-227).</p>
      */
     @Column(name = "reason_cd", length = 36)
     private String reasonCd;

@@ -30,13 +30,20 @@ import org.springframework.stereotype.Component;
  * 수정하지 않고 <b>새로 다 만든 뒤 참조만 통째로 교체</b>하므로 volatile 참조 하나면 충분하다.
  * 읽는 쪽은 항상 이전 스냅샷이거나 새 스냅샷을 보고, 반쯤 갱신된 중간 상태를 보지 않는다.</p>
  *
- * <p><b>아직 서비스 계층에 연결하지 않았다.</b> admin 에 수술 코드그룹 5개가 등록되지 않은
- * 상태라, 지금 검증을 켜면 멀쩡한 값이 전부 막힌다. 기동 로그의 "공통코드 캐시를 갱신했습니다.
- * 그룹 N개" 로 실제 적재를 확인하고, 등록이 끝난 뒤 붙이는 순서다.</p>
+ * <p><b>서비스 계층 연결을 끝냈다</b>(2026-08-25). 예전 주석은 "admin 에 수술 코드그룹이
+ * 등록되지 않아 검증을 켤 수 없다"고 되어 있었는데, 확인해 보니 5개는 이미 등록돼 있었고
+ * 빠진 것은 {@code SURGERY_CANCEL_CD}·{@code SURGERY_ORDER_REJECT_CD}·
+ * {@code SURGERY_PROGRESS_CD} 셋이었다. 셋을 등록하고 나머지를 연결했다.</p>
  *
- * <p>연결할 자리는 이미 정해져 있다 — {@code updateProgress} 의 progressCd,
- * {@code changeRoomStatus}·{@code changeEquipmentStatus} 의 상태값, {@code createConsent} 의
- * consentTypeCd 다. 지금은 넷 다 임의 문자열이 그대로 저장된다.</p>
+ * <p>연결된 자리 — {@code updateProgress} 의 progressCd, {@code changeRoomStatus}·
+ * {@code changeEquipmentStatus}·{@code changeInoutStatus} 의 상태값,
+ * {@code createConsent} 의 consentTypeCd, {@code cancelSchedule} 의 취소사유,
+ * {@code rejectOrder} 의 반려사유.</p>
+ *
+ * <p><b>모든 검증이 {@link #hasGroup} 로 한 번 걸러진다.</b> 그룹이 admin 에서 사라지거나
+ * 캐시가 아직 안 돌았을 때 멀쩡한 요청까지 막지 않기 위해서다. 대신 그런 상황에서는
+ * 검증이 조용히 꺼지므로, 기동 로그의 "공통코드 캐시를 갱신했습니다. 그룹 N개" 로
+ * 실제 적재를 확인하는 습관이 여전히 필요하다.</p>
  */
 @Slf4j
 @Component

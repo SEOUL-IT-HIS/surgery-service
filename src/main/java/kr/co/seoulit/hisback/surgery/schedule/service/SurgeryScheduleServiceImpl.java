@@ -37,10 +37,18 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     /**
      * 취소·반려 사유 코드 그룹 (SL2-227).
      *
-     * <p>admin 에 아직 등록되지 않았다. 등록 전까지는 검증이 건너뛰어지고,
-     * 화면 선택지도 비어 보인다. 등록은 수술 담당이 한다(2026-08-10 합의).</p>
+     * <p>2026-08-25 admin 에 등록했다 — 01 환자사정 / 02 의료진사정 / 03 응급수술우선 /
+     * 04 기타. 이제 검증이 실제로 걸리고 화면 선택지도 채워진다.</p>
      */
     private static final String GROUP_CANCEL_REASON = "SURGERY_CANCEL_CD";
+
+    /**
+     * 진행단계 코드 그룹 (SL2-39).
+     *
+     * <p>2026-08-25 admin 에 등록했다 — 01 대기 / 02 진행중 / 03 종료.
+     * 그 전까지는 임의 문자열이 그대로 저장됐다.</p>
+     */
+    private static final String GROUP_PROGRESS = "SURGERY_PROGRESS_CD";
 
     /**
      * OR_STATUS_CD 01 = 사용가능 (SL2-169).
@@ -288,9 +296,9 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
 
         // SL2-227: 사유 코드가 왔다면 admin 에 등록된 값인지 확인한다.
         //
-        //   그룹이 아직 admin 에 없으면 검증을 건너뛴다 — 코드 등록 전이라고 반려 업무를
-        //   막을 수는 없다. 수술실·장비 상태코드에서 쓴 것과 같은 판단이다.
-        //   그룹이 생기는 순간 이 검증이 저절로 살아난다.
+        //   2026-08-25 admin 에 등록해 검증이 실제로 걸린다(01 환자사정 / 02 의료진사정 /
+        //   03 응급수술우선 / 04 기타). hasGroup 로 한 번 거르는 구조는 그대로 둔다 —
+        //   그룹이 사라지거나 캐시가 아직 안 돌았을 때 취소 업무가 멈추면 안 된다.
         if (cancelReasonCd != null
                 && !cancelReasonCd.isBlank()
                 && commonCodeCache.hasGroup(GROUP_CANCEL_REASON)
@@ -506,6 +514,18 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         if (!SurgeryStatus.IN_PROGRESS.equals(surgery.getStatusCd())) {
             throw new BusinessException(
                     ErrorCode.INVALID_SURGERY_STATUS, "진행단계 변경 시도 상태=" + surgery.getStatusCd());
+        }
+
+        // SL2-39: 진행단계도 admin 에 등록된 코드값인지 확인한다(2026-08-25 연결).
+        //
+        //   그룹이 admin 에 없으면 건너뛴다 — 취소사유·수술실 상태에서 쓴 것과 같은 방식이다.
+        //   그룹이 사라지거나 캐시가 아직 안 돌았을 때 멀쩡한 요청까지 막지 않기 위해서다.
+        if (progressCd != null
+                && !progressCd.isBlank()
+                && commonCodeCache.hasGroup(GROUP_PROGRESS)
+                && !commonCodeCache.isValid(GROUP_PROGRESS, progressCd)) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST, GROUP_PROGRESS + "=" + progressCd);
         }
 
         String before = surgery.getProgressCd();
