@@ -49,7 +49,7 @@ public class Consent {
     // 코드값은 수술 기준 숫자로 확정했다(2026-08-10). 다만 admin 의 CONSENT_TYPE_CD 그룹은
     // 검사·영상이 CONTRAST·INVASIVE 처럼 영문으로 함께 쓰고 있어 한 그룹에 두 체계가 섞인다.
     // 영문 두 개를 숫자로 바꿀지 그대로 둘지는 그쪽 담당자와 정해야 한다.
-    @Column(name = "consent_type_cd", length = 20)
+    @Column(name = "consent_type_cd", length = 36)
     private String consentTypeCd;
 
     // §14.1 스냅샷 금지 예외: 그 화면에서 직접 입력·확정되는 원본 데이터

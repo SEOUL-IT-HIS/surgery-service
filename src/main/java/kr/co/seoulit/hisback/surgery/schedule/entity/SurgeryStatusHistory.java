@@ -60,12 +60,21 @@ public class SurgeryStatusHistory {
 
     /**
      * 바뀌기 전 값. <b>null 이 정상인 경우가 있다</b> — 수술을 처음 등록할 때는 이전 값이 없다.
+     *
+     * <p><b>길이를 20 → 36 으로 넓혔다</b>(2026-08-25) — 이 컬럼에 담기는 것은 다른 테이블의
+     * {@code _cd} 값인데, 그쪽이 대부분 36 이었다. 원본보다 이력이 좁으면 긴 코드가 들어올 때
+     * 잘린다. 지금 코드값이 두 자리라 드러나지 않았을 뿐 구조가 어긋나 있었다.</p>
+     *
+     * <p>수술 서비스는 {@code _cd} 를 36 으로 통일한다. §14.2 는 "코드 최대 길이"만 두라고
+     * 하므로 20 으로 좁히는 편이 원칙에 가깝지만, 이미 36 으로 만든 컬럼이 16 개이고
+     * {@code ddl-auto=update} 는 길이를 <b>줄이지 못한다</b> — 수동 DDL 이 필요하고 기존 값이
+     * 넘치면 실패한다. 넓히는 쪽은 안전하므로 36 으로 맞췄다.</p>
      */
-    @Column(name = "before_cd", length = 20)
+    @Column(name = "before_cd", length = 36)
     private String beforeCd;
 
     /** 바뀐 뒤 값. 이력의 핵심이라 비어 있을 수 없다. */
-    @Column(name = "after_cd", length = 20, nullable = false)
+    @Column(name = "after_cd", length = 36, nullable = false)
     private String afterCd;
 
     /**
@@ -74,7 +83,7 @@ public class SurgeryStatusHistory {
      * <p>SURGERY_CANCEL_CD 그룹이 아직 admin 에 없어 지금은 값이 들어올 일이 없다.
      * 등록되면 cancelSchedule 이 받은 사유를 여기에 함께 남긴다(SL2-227).</p>
      */
-    @Column(name = "reason_cd", length = 20)
+    @Column(name = "reason_cd", length = 36)
     private String reasonCd;
 
     /**

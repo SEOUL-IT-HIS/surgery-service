@@ -46,7 +46,7 @@ public class OperativeRecord {
     private String procedureName;
 
     // OP_STATUS_CD: 01초안(작성중)/02확정. 그룹코드는 필드명(opStatusCd)에 맞춘다.
-    @Column(name = "op_status_cd", length = 20)
+    @Column(name = "op_status_cd", length = 36)
     private String opStatusCd;
 
     @CreationTimestamp

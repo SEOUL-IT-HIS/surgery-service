@@ -89,7 +89,7 @@ public class SurgeryOrder {
     private String emergencyYn;
 
     /** 오더 상태 (OrderStatus: 00접수 / 01수락 / 02반려) */
-    @Column(name = "ORDER_STATUS_CD", length = 20, nullable = false)
+    @Column(name = "ORDER_STATUS_CD", length = 36, nullable = false)
     private String orderStatusCd;
 
     /**
@@ -98,7 +98,7 @@ public class SurgeryOrder {
      * <p>자유 문구가 아니라 코드로 받는다 — 문구로 받으면 "환자 거부"와 "환자거부"가
      * 다른 사유로 집계된다.</p>
      */
-    @Column(name = "REJECT_REASON_CD", length = 20)
+    @Column(name = "REJECT_REASON_CD", length = 36)
     private String rejectReasonCd;
 
     /** 요청 수술 종류 코드 */
