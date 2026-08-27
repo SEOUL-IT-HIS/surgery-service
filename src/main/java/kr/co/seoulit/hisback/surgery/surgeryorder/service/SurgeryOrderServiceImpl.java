@@ -183,9 +183,14 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
         SurgeryOrder order = findOrThrow(orderId);
         requireReceived(order);
 
+        // 사유는 필수다(2026-08-26). 컨트롤러의 @Valid 가 먼저 막지만, 서비스를 직접 부르는
+        //   경로(테스트·다른 서비스)도 있으므로 여기서도 확인한다(§11.5 업무 규칙은 서비스).
         String reasonCd = (request != null) ? blankToNull(request.getRejectReasonCd()) : null;
-        if (reasonCd != null
-                && commonCodeCache.hasGroup(GROUP_REJECT_REASON)
+        if (reasonCd == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "반려 사유는 필수입니다");
+        }
+
+        if (commonCodeCache.hasGroup(GROUP_REJECT_REASON)
                 && !commonCodeCache.isValid(GROUP_REJECT_REASON, reasonCd)) {
             throw new BusinessException(
                     ErrorCode.INVALID_REQUEST, GROUP_REJECT_REASON + "=" + reasonCd);

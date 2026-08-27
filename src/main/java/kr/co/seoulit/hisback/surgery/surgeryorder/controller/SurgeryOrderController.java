@@ -135,13 +135,14 @@ public class   SurgeryOrderController {
      *
      * <p>{@code PATCH /api/surgery/orders/{orderId}/reject}</p>
      *
-     * <p>본문 없이 호출해도 된다 — 사유 코드 그룹이 admin 에 아직 없어 사유 없는 반려가
-     * 불가피하다. 그룹이 등록되면 값 검증이 저절로 살아난다.</p>
+     * <p><b>본문과 사유가 모두 필수다</b>(2026-08-26). 예전에는 사유 코드 그룹이 admin 에
+     * 없어 본문 없이도 통과시켰는데, 그룹을 등록했으므로 그 예외가 필요 없어졌다.
+     * 사유가 없거나 비어 있으면 {@code @Valid} 가 400 SUR038 로 막는다(§11.5).</p>
      */
     @PatchMapping("/{orderId}/reject")
     public ResponseEntity<ApiResponse<SurgeryOrderDto>> rejectOrder(
             @PathVariable String orderId,
-            @RequestBody(required = false) RejectSurgeryOrderRequest request) {
+            @Valid @RequestBody RejectSurgeryOrderRequest request) {
         return ResponseEntity.ok(
                 ApiResponse.success(surgeryOrderService.rejectOrder(orderId, request)));
     }
