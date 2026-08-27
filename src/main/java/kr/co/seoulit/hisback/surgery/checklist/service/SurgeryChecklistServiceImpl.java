@@ -8,7 +8,10 @@ import kr.co.seoulit.hisback.surgery.checklist.entity.SurgeryChecklist;
 import kr.co.seoulit.hisback.surgery.checklist.repository.SurgeryChecklistRepository;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
+import kr.co.seoulit.hisback.surgery.schedule.entity.Surgery;
+import kr.co.seoulit.hisback.surgery.schedule.repository.SurgeryRepository;
 import kr.co.seoulit.hisback.surgery.schedule.service.SurgeryGuard;
+import kr.co.seoulit.hisback.surgery.schedule.type.SurgeryStatus;
 import org.springframework.stereotype.Service;
 
 /**
@@ -39,10 +42,35 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
     /** SL2-223: 하위 목록 조회 전에 수술 존재를 확인한다 */
     private final SurgeryGuard surgeryGuard;
 
+    /** 수술 상태를 읽기 위해서만 쓴다 — 체크리스트를 쓸 수 있는 상태인지 판단한다 */
+    private final SurgeryRepository surgeryRepository;
+
     public SurgeryChecklistServiceImpl(
-            SurgeryChecklistRepository surgeryChecklistRepository, SurgeryGuard surgeryGuard) {
+            SurgeryChecklistRepository surgeryChecklistRepository,
+            SurgeryGuard surgeryGuard,
+            SurgeryRepository surgeryRepository) {
         this.surgeryChecklistRepository = surgeryChecklistRepository;
         this.surgeryGuard = surgeryGuard;
+        this.surgeryRepository = surgeryRepository;
+    }
+
+    /**
+     * 체크리스트를 쓸 수 있는 수술인지 확인한다 (2026-08-26).
+     *
+     * <p>예약(01)·진행중(02)만 허용한다. 완료(03)·취소(04)는 이미 끝난 수술이라
+     * 지금 와서 안전 확인을 기록하는 것이 사실과 맞지 않는다.</p>
+     */
+    private void requireChecklistWritable(String surgeryId) {
+        Surgery surgery =
+                surgeryRepository
+                        .findById(surgeryId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.SURGERY_NOT_FOUND, surgeryId));
+
+        String status = surgery.getStatusCd();
+        if (!SurgeryStatus.SCHEDULED.equals(status) && !SurgeryStatus.IN_PROGRESS.equals(status)) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_SURGERY_STATUS, "체크리스트 작성 불가 상태=" + status);
+        }
     }
 
     /** SL2-35: 특정 수술의 체크리스트 전체 조회 — 단계 순서와 무관하게 등록된 항목을 모두 준다. */
@@ -63,6 +91,19 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
      */
     @Override
     public SurgeryChecklistDto createChecklistItem(SurgeryChecklistDto request) {
+        // 대상 수술이 실재해야 한다 — 조회는 이미 막고 있었는데 등록만 빠져 있었다(2026-08-26).
+        surgeryGuard.requireExists(request.getSurgeryId());
+
+        // 끝난 수술에는 체크리스트를 남기지 않는다(2026-08-26).
+        //
+        //   WHO 체크리스트는 수술이 진행되는 동안 하는 확인 절차다. 완료·취소된 수술에
+        //   Sign Out 을 새로 다는 것은 사후에 기록을 만드는 일이라 의무기록으로 성립하지
+        //   않는다. 검사가 없던 동안에는 취소된 수술에도 체크리스트가 붙었다.
+        //
+        //   예약(01)을 허용하는 이유 — Sign In 은 마취 시작 전이라 수술이 시작되기 전에
+        //   수행한다. 진행중(02)만 허용하면 정상 업무가 막힌다.
+        requireChecklistWritable(request.getSurgeryId());
+
         // SignIn(01)이면 null 이 돌아와 검사를 건너뛴다 — 첫 단계라 앞선 단계가 없다
         String requiredPrevPhase = previousPhase(request.getPhaseCd());
         if (requiredPrevPhase != null) {
@@ -103,6 +144,10 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
                 surgeryChecklistRepository
                         .findById(checklistId)
                         .orElseThrow(() -> new BusinessException(ErrorCode.CHECKLIST_NOT_FOUND, checklistId));
+
+        // 등록과 같은 규칙 — 끝난 수술의 체크리스트는 되돌리지도 못한다(2026-08-26)
+        requireChecklistWritable(item.getSurgeryId());
+
         item.setCompletedYn(completedYn);
         return toDto(surgeryChecklistRepository.save(item));
     }
