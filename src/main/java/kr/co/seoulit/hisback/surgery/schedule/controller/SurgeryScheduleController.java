@@ -133,23 +133,26 @@ public class SurgeryScheduleController {
     }
 
     /**
-     * 수술 취소·반려 (SL2-33 취소 / SL2-227 반려 사유 입력)
+     * 수술 취소 (SL2-33 / SL2-178 사유 필수)
      *
      * <p>{@code PATCH /api/surgery/schedule/{surgeryId}/cancel}</p>
      *
-     * <p>물리 삭제 대신 상태 전이(04 취소)로 표현한다(§21.6). 요청접수(00) 상태에서의
-     * 취소가 업무상 '반려'다 — 별도 엔드포인트를 두지 않는 이유는 저장되는 것이
-     * 같기 때문이고, 둘의 구분은 전이 전 상태로 드러난다(이력의 before_cd).</p>
+     * <p>물리 삭제 대신 상태 전이(04 취소)로 표현한다(§21.6).</p>
      *
-     * <p>본문 없이 호출해도 된다({@code required = false}). 사유 없는 취소가 업무상 존재한다.</p>
+     * <p><b>본문과 사유가 모두 필수다</b>(2026-08-26). 예전에는 {@code required = false} 라
+     * 본문 없이도 통과했는데, 그때는 이 엔드포인트가 반려까지 겸했기 때문이다. 반려가
+     * 오더로 옮겨간 뒤로는 순수 취소 전용이라 사유를 빼놓을 이유가 없다.</p>
+     *
+     * <p>사유가 없거나 비어 있으면 {@code @Valid} 가 400 으로 막는다 —
+     * GlobalExceptionHandler 가 SUR038 로 돌려준다(§11.5).</p>
      */
     @PatchMapping("/{surgeryId}/cancel")
     public ResponseEntity<ApiResponse<SurgeryDto>> cancelSchedule(
-            @PathVariable String surgeryId,
-            @RequestBody(required = false) CancelSurgeryRequest request) {
-        String reasonCd = (request != null) ? request.getCancelReasonCd() : null;
+            @PathVariable String surgeryId, @Valid @RequestBody CancelSurgeryRequest request) {
         return ResponseEntity.ok(
-                ApiResponse.success(surgeryScheduleService.cancelSchedule(surgeryId, reasonCd)));
+                ApiResponse.success(
+                        surgeryScheduleService.cancelSchedule(
+                                surgeryId, request.getCancelReasonCd())));
     }
 
     // SL2-15 일괄 배정은 오더로 옮겼다 — PATCH /api/surgery/orders/{orderId}/assign

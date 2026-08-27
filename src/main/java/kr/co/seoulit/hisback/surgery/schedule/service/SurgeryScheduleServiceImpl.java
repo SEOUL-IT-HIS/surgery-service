@@ -311,9 +311,13 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         //   2026-08-25 admin 에 등록해 검증이 실제로 걸린다(01 환자사정 / 02 의료진사정 /
         //   03 응급수술우선 / 04 기타). hasGroup 로 한 번 거르는 구조는 그대로 둔다 —
         //   그룹이 사라지거나 캐시가 아직 안 돌았을 때 취소 업무가 멈추면 안 된다.
-        if (cancelReasonCd != null
-                && !cancelReasonCd.isBlank()
-                && commonCodeCache.hasGroup(GROUP_CANCEL_REASON)
+        // SL2-178: 사유는 필수다. 컨트롤러의 @Valid 가 먼저 막지만, 서비스를 직접 부르는
+        //   경로(다른 서비스·테스트)도 있으므로 여기서도 확인한다(§11.5 업무 규칙은 서비스).
+        if (cancelReasonCd == null || cancelReasonCd.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "취소 사유는 필수입니다");
+        }
+
+        if (commonCodeCache.hasGroup(GROUP_CANCEL_REASON)
                 && !commonCodeCache.isValid(GROUP_CANCEL_REASON, cancelReasonCd)) {
             throw new BusinessException(
                     ErrorCode.INVALID_REQUEST, GROUP_CANCEL_REASON + "=" + cancelReasonCd);
