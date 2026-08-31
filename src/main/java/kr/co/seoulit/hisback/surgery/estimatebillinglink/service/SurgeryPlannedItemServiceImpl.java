@@ -30,7 +30,7 @@ public class SurgeryPlannedItemServiceImpl implements SurgeryPlannedItemService 
 
     @Override
     public List<SurgeryPlannedItemDto> getPlannedItems(String surgeryId) {
-        // SL2-223: 없는 수술이면 빈 목록이 아니라 404 다(2026-08-12 결정)
+        // SL2-223: 없는 수술이면 빈 목록이 아니라 404 다
         surgeryGuard.requireExists(surgeryId);
         return surgeryPlannedItemRepository.findBySurgeryId(surgeryId).stream()
                 .map(this::toDto)

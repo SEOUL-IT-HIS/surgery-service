@@ -28,14 +28,14 @@ public class OperativeRecordController {
         this.operativeRecordService = operativeRecordService;
     }
 
-    //getOperativeRecords는 수술 ID로 해당 수술의 수술기록 목록을 조회해 ApiResponse로 반환한다 (SL2-57)
+    // getOperativeRecords는 수술 ID로 해당 수술의 수술기록 목록을 조회해 ApiResponse로 반환한다 (SL2-57)
     @GetMapping("/{surgeryId}/operative-record")
     public ResponseEntity<ApiResponse<List<OperativeRecordDto>>> getOperativeRecords(
             @PathVariable String surgeryId) {
         return ResponseEntity.ok(ApiResponse.success(operativeRecordService.getOperativeRecords(surgeryId)));
     }
 
-    //getOperativeRecord는 기록 ID 하나로 수술기록 단건을 조회해 ApiResponse로 반환한다 (SL2-57)
+    // getOperativeRecord는 기록 ID 하나로 수술기록 단건을 조회해 ApiResponse로 반환한다 (SL2-57)
     // 위 목록 조회와 경로가 겹쳐 보이지만, 두 번째 칸이 고정 문자열(operative-record)이냐
     // 값이냐로 갈려 충돌하지 않는다.
     //   GET /api/surgery/SUR-1/operative-record  → 목록
@@ -47,7 +47,7 @@ public class OperativeRecordController {
         return ResponseEntity.ok(ApiResponse.success(operativeRecordService.getOperativeRecord(recordId)));
     }
 
-    //createOperativeRecord는 POST 요청을 받아 OperativeRecordService에 전달(위임)하고, 결과를 ApiResponse로 감싸 반환한다 (SL2-55)
+    // createOperativeRecord는 POST 요청을 받아 OperativeRecordService에 전달(위임)하고, 결과를 ApiResponse로 감싸 반환한다 (SL2-55)
     @PostMapping("/{surgeryId}/operative-record")
     public ResponseEntity<ApiResponse<OperativeRecordDto>> createOperativeRecord(
             @PathVariable String surgeryId, @Valid @RequestBody OperativeRecordDto request) {
@@ -58,7 +58,7 @@ public class OperativeRecordController {
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));
     }
 
-    //updateOperativeRecord는 PUT 요청을 받아 기록 내용을 교체한다 (SL2-56)
+    // updateOperativeRecord는 PUT 요청을 받아 기록 내용을 교체한다 (SL2-56)
     @PutMapping("/operative-record/{recordId}")
     public ResponseEntity<ApiResponse<OperativeRecordDto>> updateOperativeRecord(
             @PathVariable String recordId, @Valid @RequestBody OperativeRecordDto request) {

@@ -57,7 +57,7 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
      * SL2-34/246: 특정 수술의 마취기록 목록 (페이지 단위).
      *
      * <p>SL2-223: 수술이 없으면 빈 페이지가 아니라 404 다. 잘못된 식별자를 "자료 없음"으로
-     * 답하면 오타가 조용히 넘어간다(2026-08-12 결정).</p>
+     * 답하면 오타가 조용히 넘어간다.</p>
      */
     @Override
     public PageResponse<AnesthesiaRecordDto> getAnesthesiaRecords(

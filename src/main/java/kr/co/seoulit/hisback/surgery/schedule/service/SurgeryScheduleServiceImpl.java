@@ -200,8 +200,8 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         return toDto(findOrThrow(surgeryId));
     }
 
-    // SL2-36 수술 요청 등록은 SurgeryOrderService.createOrder 로 옮겼다.
-    //   요청은 SURGERY 가 아니라 SURGERY_ORDER 로 들어온다(2026-08-13 결정).
+    // SL2-36 수술 요청 등록은 SurgeryOrderService.createOrder로
+    // 요청은 SURGERY 가 아니라 SURGERY_ORDER 로 들어온다.
 
     /**
      * 오더 수락 시 수술 생성 (surgeryorder 가 호출)
@@ -251,8 +251,8 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         Surgery surgery = findOrThrow(surgeryId);
 
         // 예약(01)만 수정 대상이다. 수술은 예약에서 시작하므로(오더 수락 시 생성) 그 앞
-        //   단계가 없고, 진행중은 이미 시작돼 일정을 바꾸는 것이 무의미하며,
-        //   완료·취소는 확정된 기록이다.
+        // 단계가 없고, 진행중은 이미 시작돼 일정을 바꾸는 것이 무의미하며,
+        // 완료·취소는 확정된 기록이다.
         if (!SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
             throw new BusinessException(
                     ErrorCode.INVALID_SURGERY_STATUS, "수정 시도 상태=" + surgery.getStatusCd());
@@ -271,9 +271,9 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         surgery.setSurgeryTypeCd(request.getSurgeryTypeCd());
 
         // 연관 배정 정보 — 전체 교체 계약이라 보내지 않은 값은 해제된다.
-        //   수술실을 비우면 배정 대기로 되돌아가는 셈이지만 상태(01)는 그대로다.
-        //   상태까지 되돌릴지는 취소 시 일괄 해제(SL2-179)와 함께 정해야 할 문제라
-        //   여기서 임의로 정하지 않는다.
+        // 수술실을 비우면 배정 대기로 되돌아가는 셈이지만 상태(01)는 그대로다.
+        // 상태까지 되돌릴지는 취소 시 일괄 해제(SL2-179)와 함께 정해야 할 문제라
+        // 여기서 임의로 정하지 않는다.
         surgery.setRoomCode(request.getRoomCode());
         surgery.setAnesthesiologistId(request.getAnesthesiologistId());
         surgery.setNurseId(request.getNurseId());
@@ -291,11 +291,11 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         // 허용 목록으로 쓰는 이유 — 나중에 상태가 추가돼도 기본이 '차단'이라 안전하다.
         // 차단 목록으로 쓰면 새 상태가 생길 때마다 여기에 추가하는 걸 잊기 쉽다.
         //
-        //   00 요청접수 → 허용 (업무상 '반려')
-        //   01 예약     → 허용 (배정은 됐지만 아직 시작 전)
-        //   02 진행중   → 차단 (환자가 이미 수술대에 있다)
-        //   03 완료     → 차단 (끝난 일)
-        //   04 취소     → 차단 (이미 취소됨)
+        // 00 요청접수 → 허용 (업무상 '반려')
+        // 01 예약     → 허용 (배정은 됐지만 아직 시작 전)
+        // 02 진행중   → 차단 (환자가 이미 수술대에 있다)
+        // 03 완료     → 차단 (끝난 일)
+        // 04 취소     → 차단 (이미 취소됨)
         //
         // 진행중 수술이 실제로 중단되는 경우(환자 상태 악화 등)는 '취소'가 아니라
         // 별도 상태로 다뤄야 한다 — 여기서 함께 처리하면 통계에서 요청 반려와
@@ -307,12 +307,10 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         requireTransition(before, SurgeryStatus.CANCELLED);
 
         // SL2-227: 사유 코드가 왔다면 admin 에 등록된 값인지 확인한다.
-        //
-        //   2026-08-25 admin 에 등록해 검증이 실제로 걸린다(01 환자사정 / 02 의료진사정 /
-        //   03 응급수술우선 / 04 기타). hasGroup 로 한 번 거르는 구조는 그대로 둔다 —
-        //   그룹이 사라지거나 캐시가 아직 안 돌았을 때 취소 업무가 멈추면 안 된다.
+        // (01 환자사정 / 02 의료진사정 / 03 응급수술우선 / 04 기타). hasGroup 로 한 번 거르는 구조는 그대로 둔다 —
+        // 그룹이 사라지거나 캐시가 아직 안 돌았을 때 취소 업무가 멈추면 안 된다.
         // SL2-178: 사유는 필수다. 컨트롤러의 @Valid 가 먼저 막지만, 서비스를 직접 부르는
-        //   경로(다른 서비스·테스트)도 있으므로 여기서도 확인한다(§11.5 업무 규칙은 서비스).
+        // 경로(다른 서비스·테스트)도 있으므로 여기서도 확인한다(§11.5 업무 규칙은 서비스).
         if (cancelReasonCd == null || cancelReasonCd.isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "취소 사유는 필수입니다");
         }
@@ -328,13 +326,13 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         surgery.setCancelReasonCd(cancelReasonCd);
         // SL2-179: 배정 정보(수술실·집도의·마취의·간호사)는 지우지 않는다.
         //
-        //   요구사항 문구는 "일괄 해제"지만, 해제의 목적인 '자원이 묶여 보이지 않게'는 이미
-        //   달성돼 있다 — 모니터링의 inUse 는 진행중만 보고, scheduledCount 와 미배정 집계는
-        //   취소를 제외한다. 반면 지우면 "몇 번 방에 누가 잡혀 있었나"가 사라지고, 집도의는
-        //   NOT NULL 이라 제약까지 풀어야 한다.
+        // 요구사항 문구는 "일괄 해제"지만, 해제의 목적인 '자원이 묶여 보이지 않게'는 이미
+        // 달성돼 있다 — 모니터링의 inUse 는 진행중만 보고, scheduledCount와 미배정 집계는
+        // 취소를 제외한다. 반면 지우면 "몇 번 방에 누가 잡혀 있었나"가 사라지고, 집도의는
+        // NOT NULL 이라 제약까지 풀어야 한다.
         //
-        //   실제로 어긋나 있던 것은 요청자가 결과를 모른다는 쪽이었다. 아래에서 오더를
-        //   취소(03)로 바꾼다. 판단 근거는 SurgeryOrderCanceller 에 적었다. (2026-08-14)
+        // 실제로 어긋나 있던 것은 요청자가 결과를 모른다는 쪽이었다. 아래에서 오더를
+        // 취소(03)로 바꾼다. 판단 근거는 SurgeryOrderCanceller 에 적었다.
         Surgery saved = surgeryRepository.save(surgery);
         // 취소는 사유가 있는 유일한 전이라 reasonCd 를 함께 남긴다
         recordHistory(surgeryId, StatusChangeType.STATUS, before, SurgeryStatus.CANCELLED, cancelReasonCd);
@@ -450,7 +448,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         return toDto(surgeryRepository.save(surgery));
     }
 
-    // SL2-225/235/236 배정 대기 목록은 오더로 옮겼다 — SurgeryOrderService.getOrders
+    // SL2-225/235/236 배정 대기 목록은 오더로 — SurgeryOrderService.getOrders
 
     /**
      * SL2-170: 수술실 배정 현황 조회
@@ -492,8 +490,8 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     }
 
     // SL2-15 일괄 배정(요청접수→예약)은 오더로 옮겼다 — PATCH /api/surgery/orders/{orderId}/assign
-    //   수술은 배정이 끝난 뒤에 만들어지므로, 수술에 다시 배정을 거는 단계가 없다.
-    //   배정 후 부분 변경은 아래 개별 배정 4종(/surgeon, /room, ...)이 담당한다.
+    // 수술은 배정이 끝난 뒤에 만들어지므로, 수술에 다시 배정을 거는 단계가 없다.
+    // 배정 후 부분 변경은 아래 개별 배정 4종(/surgeon, /room, ...)이 담당한다.
 
     /** 수술 시작 — 예약 상태에서만 가능하며 실제 시작일을 남긴다. */
     @Override
@@ -503,13 +501,13 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         String before = surgery.getStatusCd();
         requireTransition(before, SurgeryStatus.IN_PROGRESS);
 
-        // SL2-217: 수술 동의서가 없으면 시작할 수 없다(2026-08-26).
+        // SL2-217: 수술 동의서가 없으면 시작할 수 없다.
         //
-        //   환자 동의 없이 시작한 수술은 의무기록으로 성립하지 않는다. 마취기록이
-        //   마취 동의서(02)를 요구하는 것과 같은 성격의 규칙이고, 그쪽 구현을 따랐다.
+        // 환자 동의 없이 시작한 수술은 의무기록으로 성립하지 않는다. 마취기록이
+        // 마취 동의서(02)를 요구하는 것과 같은 성격의 규칙이고, 그쪽 구현을 따랐다.
         //
-        //   수술 동의서(01)만 본다 — 마취 동의서는 마취기록을 쓸 때 그쪽이 검사한다.
-        //   여기서 둘 다 요구하면 마취 없는 수술(국소마취 등)이 시작조차 못 한다.
+        // 수술 동의서(01)만 본다 — 마취 동의서는 마취기록을 쓸 때 그쪽이 검사한다.
+        // 여기서 둘 다 요구하면 마취 없는 수술(국소마취 등)이 시작조차 못 한다.
         if (!consentRepository.existsBySurgeryIdAndConsentTypeCd(surgeryId, ConsentType.SURGERY)) {
             throw new BusinessException(
                     ErrorCode.CONSENT_NOT_CONFIRMED, "수술 동의서 미확인 surgeryId=" + surgeryId);
@@ -544,10 +542,10 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
                     ErrorCode.INVALID_SURGERY_STATUS, "진행단계 변경 시도 상태=" + surgery.getStatusCd());
         }
 
-        // SL2-39: 진행단계도 admin 에 등록된 코드값인지 확인한다(2026-08-25 연결).
+        // SL2-39: 진행단계도 admin 에 등록된 코드값인지 확인한다.
         //
-        //   그룹이 admin 에 없으면 건너뛴다 — 취소사유·수술실 상태에서 쓴 것과 같은 방식이다.
-        //   그룹이 사라지거나 캐시가 아직 안 돌았을 때 멀쩡한 요청까지 막지 않기 위해서다.
+        // 그룹이 admin 에 없으면 건너뛴다 — 취소사유·수술실 상태에서 쓴 것과 같은 방식이다.
+        // 그룹이 사라지거나 캐시가 아직 안 돌았을 때 멀쩡한 요청까지 막지 않기 위해서다.
         if (progressCd != null
                 && !progressCd.isBlank()
                 && commonCodeCache.hasGroup(GROUP_PROGRESS)

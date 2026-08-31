@@ -25,21 +25,21 @@ public class SurgicalEquipmentController {
         this.surgicalEquipmentService = surgicalEquipmentService;
     }
 
-    //getEquipments는 GET 전체 요청을 받아 페이지 단위로 SurgicalEquipmentService에 전달(위임)하고,
-    //Service에서 가져온 결과물을 ApiResponse로 감싸 반환한다 (SL2-110: page/size/sort)
+    // getEquipments는 GET 전체 요청을 받아 페이지 단위로 SurgicalEquipmentService에 전달(위임)하고,
+    // Service에서 가져온 결과물을 ApiResponse로 감싸 반환한다 (SL2-110: page/size/sort)
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<SurgicalEquipmentDto>>> getEquipments(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String sort) {
         // sort 조립을 PageableSupport 로 옮겼다 — Sort.by(sort) 는 "equipmentName,desc" 처럼
-        //   방향이 붙은 값을 컬럼명 하나로 보고 500 을 낸다. 프론트 PageParams 가 쓰기로 한
-        //   형식이 바로 그 형식이라, 방향을 보내는 순간 터진다.
+        // 방향이 붙은 값을 컬럼명 하나로 보고 500 을 낸다. 프론트 PageParams 가 쓰기로 한
+        // 형식이 바로 그 형식이라, 방향을 보내는 순간 터진다.
         Pageable pageable = PageableSupport.of(page, size, sort);
         return ResponseEntity.ok(ApiResponse.success(surgicalEquipmentService.getSurgicalEquipments(pageable)));
     }
 
-    //getEquipment는 특정 장비 ID로 특정 장비를 조회한다
+    // getEquipment는 특정 장비 ID로 특정 장비를 조회한다
     @GetMapping("/{equipmentId}")
     public ResponseEntity<ApiResponse<SurgicalEquipmentDto>> getEquipment(@PathVariable String equipmentId){
         return ResponseEntity.ok(
@@ -47,22 +47,22 @@ public class SurgicalEquipmentController {
         );
     }
 
-    //createEquipment는 POST 요청을 받아 SurgicalEquipmentService에 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 감싸 반환한다
+    // createEquipment는 POST 요청을 받아 SurgicalEquipmentService에 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 감싸 반환한다
     @PostMapping
     public ResponseEntity<ApiResponse<SurgicalEquipmentDto>> createEquipment(@Valid @RequestBody SurgicalEquipmentDto equipmentDto) {
         SurgicalEquipmentDto created = surgicalEquipmentService.createSurgicalEquipment(equipmentDto);
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));
     }
 
-    //updateEquipment는 PUT 요청을 받아 SurgicalEquipmentService에 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 감싸 반환한다
+    // updateEquipment는 PUT 요청을 받아 SurgicalEquipmentService에 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 감싸 반환한다
     @PutMapping("/{equipmentId}")
     public ResponseEntity<ApiResponse<SurgicalEquipmentDto>> updateEquipment(@PathVariable String equipmentId, @Valid @RequestBody SurgicalEquipmentDto equipmentDto) {
         SurgicalEquipmentDto updated = surgicalEquipmentService.updateSurgicalEquipment(equipmentId, equipmentDto);
         return ResponseEntity.ok(ApiResponse.success(updated));
     }
 
-    //SL2-11 수술장비 제거: 개발표준가이드 §21.6/§21.8("삭제보다 상태 변경 우선")에 따라
-    //물리 DELETE가 아니라 status_cd 상태 전이(PATCH)로 "제거"를 표현한다(OperatingRoom 상태변경과 동형).
+    // SL2-11 수술장비 제거: 개발표준가이드 §21.6/§21.8("삭제보다 상태 변경 우선")에 따라
+    // 물리 DELETE가 아니라 status_cd 상태 전이(PATCH)로 "제거"를 표현한다(OperatingRoom 상태변경과 동형).
     @PatchMapping("/{equipmentId}/status")
     public ResponseEntity<ApiResponse<SurgicalEquipmentDto>> changeEquipmentStatus(
             @PathVariable String equipmentId, @RequestBody Map<String, String> request) {
@@ -71,7 +71,7 @@ public class SurgicalEquipmentController {
                         surgicalEquipmentService.changeEquipmentStatus(equipmentId, request.get("statusCd"))));
     }
 
-    //SL2-12: 출고/반입은 물리 변경이 아니라 inout_cd 상태 전이로 표현한다(OperatingRoom 상태변경과 동형)
+    // SL2-12: 출고/반입은 물리 변경이 아니라 inout_cd 상태 전이로 표현한다(OperatingRoom 상태변경과 동형)
     @PatchMapping("/{equipmentId}/inout")
     public ResponseEntity<ApiResponse<SurgicalEquipmentDto>> changeInout(
             @PathVariable String equipmentId, @RequestBody Map<String, String> request) {

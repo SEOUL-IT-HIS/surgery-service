@@ -102,7 +102,7 @@ public class ConsentServiceImpl implements ConsentService {
      */
     @Override
     public ConsentDto createConsent(ConsentDto request) {
-        // SL2-216: 대상 수술이 실제로 있는지 먼저 본다(2026-08-26).
+        // SL2-216: 대상 수술이 실제로 있는지 먼저 본다.
         //
         //   없으면 404 SUR035. 이 검사가 없던 동안에는 오타로 잘못된 surgery_id 를 보내도
         //   동의서가 그대로 저장됐고, 그 행은 어느 수술에도 붙지 않은 채 남았다.

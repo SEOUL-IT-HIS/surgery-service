@@ -46,7 +46,7 @@ public class Consent {
     private String authorStaffId;
 
     // 동의 종류: 01수술/02마취/03비용견적.
-    // 코드값은 수술 기준 숫자로 확정했다(2026-08-10). 다만 admin 의 CONSENT_TYPE_CD 그룹은
+    // 코드값은 수술 기준 숫자로 확정했다. 다만 admin 의 CONSENT_TYPE_CD 그룹은
     // 검사·영상이 CONTRAST·INVASIVE 처럼 영문으로 함께 쓰고 있어 한 그룹에 두 체계가 섞인다.
     // 영문 두 개를 숫자로 바꿀지 그대로 둘지는 그쪽 담당자와 정해야 한다.
     @Column(name = "consent_type_cd", length = 36)

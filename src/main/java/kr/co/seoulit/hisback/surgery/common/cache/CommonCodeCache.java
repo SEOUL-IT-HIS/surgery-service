@@ -30,7 +30,7 @@ import org.springframework.stereotype.Component;
  * 수정하지 않고 <b>새로 다 만든 뒤 참조만 통째로 교체</b>하므로 volatile 참조 하나면 충분하다.
  * 읽는 쪽은 항상 이전 스냅샷이거나 새 스냅샷을 보고, 반쯤 갱신된 중간 상태를 보지 않는다.</p>
  *
- * <p><b>서비스 계층 연결을 끝냈다</b>(2026-08-25). 예전 주석은 "admin 에 수술 코드그룹이
+ * <p><b>서비스 계층 연결을 끝냈다</b>. 예전 주석은 "admin 에 수술 코드그룹이
  * 등록되지 않아 검증을 켤 수 없다"고 되어 있었는데, 확인해 보니 5개는 이미 등록돼 있었고
  * 빠진 것은 {@code SURGERY_CANCEL_CD}·{@code SURGERY_ORDER_REJECT_CD}·
  * {@code SURGERY_PROGRESS_CD} 셋이었다. 셋을 등록하고 나머지를 연결했다.</p>

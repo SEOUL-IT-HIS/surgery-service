@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p><b>경로를 나눈 이유</b> — 예전에는 {@code POST /api/surgery/schedule} 이 요청 접수를
  * 겸했다. 그런데 그 시점에는 수술실도 확정 시각도 없어서 '일정'이라 부를 것이 없었고,
  * 같은 대상을 읽을 때는 {@code /requests} 라고 부르면서 쓸 때만 {@code /schedule} 이라
- * 부르는 모순이 있었다. 요청은 요청대로 부른다. (2026-08-13 결정)</p>
+ * 부르는 모순이 있었다. 요청은 요청대로 부른다.</p>
  */
 @RestController
 @RequestMapping("/api/surgery/orders")
@@ -135,7 +135,7 @@ public class   SurgeryOrderController {
      *
      * <p>{@code PATCH /api/surgery/orders/{orderId}/reject}</p>
      *
-     * <p><b>본문과 사유가 모두 필수다</b>(2026-08-26). 예전에는 사유 코드 그룹이 admin 에
+     * <p><b>본문과 사유가 모두 필수다</b>. 예전에는 사유 코드 그룹이 admin 에
      * 없어 본문 없이도 통과시켰는데, 그룹을 등록했으므로 그 예외가 필요 없어졌다.
      * 사유가 없거나 비어 있으면 {@code @Valid} 가 400 SUR038 로 막는다(§11.5).</p>
      */

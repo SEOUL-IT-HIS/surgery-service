@@ -29,14 +29,14 @@ public class SurgeryChecklistController {
         this.surgeryChecklistService = surgeryChecklistService;
     }
 
-    //getChecklist는 수술 ID로 해당 수술의 체크리스트 전체를 조회해 ApiResponse로 반환한다 (SL2-35)
+    // getChecklist는 수술 ID로 해당 수술의 체크리스트 전체를 조회해 ApiResponse로 반환한다 (SL2-35)
     @GetMapping("/{surgeryId}/checklist")
     public ResponseEntity<ApiResponse<List<SurgeryChecklistDto>>> getChecklist(
             @PathVariable String surgeryId) {
         return ResponseEntity.ok(ApiResponse.success(surgeryChecklistService.getChecklist(surgeryId)));
     }
 
-    //createChecklistItem은 POST 요청을 받아 SurgeryChecklistService에 전달(위임)하고, 결과를 ApiResponse로 감싸 반환한다
+    // createChecklistItem은 POST 요청을 받아 SurgeryChecklistService에 전달(위임)하고, 결과를 ApiResponse로 감싸 반환한다
     @PostMapping("/{surgeryId}/checklist")
     public ResponseEntity<ApiResponse<SurgeryChecklistDto>> createChecklistItem(
             @PathVariable String surgeryId, @Valid @RequestBody SurgeryChecklistDto request) {
@@ -48,7 +48,7 @@ public class SurgeryChecklistController {
         return ResponseEntity.status(201).body(ApiResponse.success(201, created));
     }
 
-    //updateChecklistItem은 완료 여부만 바꾸므로 PUT이 아니라 PATCH를 쓴다 (SL2-49)
+    // updateChecklistItem은 완료 여부만 바꾸므로 PUT이 아니라 PATCH를 쓴다 (SL2-49)
     @PatchMapping("/checklist/{checklistId}")
     public ResponseEntity<ApiResponse<SurgeryChecklistDto>> updateChecklistItem(
             @PathVariable String checklistId, @RequestBody Map<String, String> request) {

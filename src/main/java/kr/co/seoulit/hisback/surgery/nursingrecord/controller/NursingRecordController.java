@@ -27,14 +27,14 @@ public class NursingRecordController {
         this.nursingRecordService = nursingRecordService;
     }
 
-    //getNursingRecords는 수술 ID로 해당 수술의 간호기록 목록을 조회해 ApiResponse로 반환한다 (SL2-61)
+    // getNursingRecords는 수술 ID로 해당 수술의 간호기록 목록을 조회해 ApiResponse로 반환한다 (SL2-61)
     @GetMapping("/{surgeryId}/nursing-records")
     public ResponseEntity<ApiResponse<List<NursingRecordDto>>> getNursingRecords(
             @PathVariable String surgeryId) {
         return ResponseEntity.ok(ApiResponse.success(nursingRecordService.getNursingRecords(surgeryId)));
     }
 
-    //createNursingRecord는 POST 요청을 받아 NursingRecordService에 전달(위임)하고, 결과를 ApiResponse로 감싸 반환한다 (SL2-58)
+    // createNursingRecord는 POST 요청을 받아 NursingRecordService에 전달(위임)하고, 결과를 ApiResponse로 감싸 반환한다 (SL2-58)
     @PostMapping("/{surgeryId}/nursing-records")
     public ResponseEntity<ApiResponse<NursingRecordDto>> createNursingRecord(
             @PathVariable String surgeryId, @Valid @RequestBody NursingRecordDto request) {

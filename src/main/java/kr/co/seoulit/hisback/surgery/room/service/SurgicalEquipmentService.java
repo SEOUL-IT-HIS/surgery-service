@@ -21,7 +21,7 @@ public interface SurgicalEquipmentService {
      */
     SurgicalEquipmentDto changeEquipmentStatus(String equipmentId, String statusCd);
 
-    //SL2-12 출고반입: inout_cd 상태 전이 (OperatingRoom changeOperatingRoomStatus와 동형)
+    // SL2-12 출고반입: inout_cd 상태 전이 (OperatingRoom changeOperatingRoomStatus와 동형)
     SurgicalEquipmentDto changeInoutStatus(String equipmentId, String inoutCd);
 
     SurgicalEquipmentDto getSurgicalEquipmentfindById(String equipmentId);

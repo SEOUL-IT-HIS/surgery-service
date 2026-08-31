@@ -133,7 +133,7 @@ public class OperatingRoomServiceImpl implements OperatingRoomService {
      * SL2-8: 수술실 상태 변경
      *
      * <p>화면은 드롭다운이라 이상한 값이 올 일이 없지만 API 를 직접 부르면 그대로 뚫린다.
-     * 실제로 {@code {"statusCd":"99"}} 가 저장되던 것을 확인해 검증을 넣었다(2026-08-11).</p>
+     * 실제로 {@code {"statusCd":"99"}} 가 저장되던 것을 확인해 검증을 넣었다.</p>
      */
     @Override
     public OperatingRoomDto changeOperatingRoomStatus(String roomCode, String statusCd) {

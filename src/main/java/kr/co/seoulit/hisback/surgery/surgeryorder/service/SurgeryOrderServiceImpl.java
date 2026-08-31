@@ -42,7 +42,7 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
     /**
      * 반려 사유 코드 그룹.
      *
-     * <p>2026-08-25 admin 에 등록했다 — 01 환자 일정 지연 / 02 서류 미충족 /
+     * <p>01 환자 일정 지연 / 02 서류 미충족 /
      * 03 수술 전 사망 / 04 수술실 사정 / 05 기타. 이제 검증이 실제로 걸린다.</p>
      *
      * <p>{@code hasGroup} 로 한 번 거르는 구조는 그대로 둔다 — 그룹이 사라지거나 캐시가
@@ -183,8 +183,8 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
         SurgeryOrder order = findOrThrow(orderId);
         requireReceived(order);
 
-        // 사유는 필수다(2026-08-26). 컨트롤러의 @Valid 가 먼저 막지만, 서비스를 직접 부르는
-        //   경로(테스트·다른 서비스)도 있으므로 여기서도 확인한다(§11.5 업무 규칙은 서비스).
+        // 사유는 필수다. 컨트롤러의 @Valid 가 먼저 막지만, 서비스를 직접 부르는
+        // 경로(테스트·다른 서비스)도 있으므로 여기서도 확인한다(§11.5 업무 규칙은 서비스).
         String reasonCd = (request != null) ? blankToNull(request.getRejectReasonCd()) : null;
         if (reasonCd == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "반려 사유는 필수입니다");

@@ -55,7 +55,7 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
     }
 
     /**
-     * 체크리스트를 쓸 수 있는 수술인지 확인한다 (2026-08-26).
+     * 체크리스트를 쓸 수 있는 수술인지 확인한다.
      *
      * <p>예약(01)·진행중(02)만 허용한다. 완료(03)·취소(04)는 이미 끝난 수술이라
      * 지금 와서 안전 확인을 기록하는 것이 사실과 맞지 않는다.</p>
@@ -76,7 +76,7 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
     /** SL2-35: 특정 수술의 체크리스트 전체 조회 — 단계 순서와 무관하게 등록된 항목을 모두 준다. */
     @Override
     public List<SurgeryChecklistDto> getChecklist(String surgeryId) {
-        // SL2-223: 없는 수술이면 빈 목록이 아니라 404 다(2026-08-12 결정)
+        // SL2-223: 없는 수술이면 빈 목록이 아니라 404 다
         surgeryGuard.requireExists(surgeryId);
         return surgeryChecklistRepository.findBySurgeryId(surgeryId).stream()
                 .map(this::toDto)
@@ -91,10 +91,10 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
      */
     @Override
     public SurgeryChecklistDto createChecklistItem(SurgeryChecklistDto request) {
-        // 대상 수술이 실재해야 한다 — 조회는 이미 막고 있었는데 등록만 빠져 있었다(2026-08-26).
+        // 대상 수술이 실재해야 한다 — 조회는 이미 막고 있었는데 등록만 빠져 있었다.
         surgeryGuard.requireExists(request.getSurgeryId());
 
-        // 끝난 수술에는 체크리스트를 남기지 않는다(2026-08-26).
+        // 끝난 수술에는 체크리스트를 남기지 않는다.
         //
         //   WHO 체크리스트는 수술이 진행되는 동안 하는 확인 절차다. 완료·취소된 수술에
         //   Sign Out 을 새로 다는 것은 사후에 기록을 만드는 일이라 의무기록으로 성립하지
@@ -145,7 +145,7 @@ public class SurgeryChecklistServiceImpl implements SurgeryChecklistService {
                         .findById(checklistId)
                         .orElseThrow(() -> new BusinessException(ErrorCode.CHECKLIST_NOT_FOUND, checklistId));
 
-        // 등록과 같은 규칙 — 끝난 수술의 체크리스트는 되돌리지도 못한다(2026-08-26)
+        // 등록과 같은 규칙 — 끝난 수술의 체크리스트는 되돌리지도 못한다
         requireChecklistWritable(item.getSurgeryId());
 
         item.setCompletedYn(completedYn);

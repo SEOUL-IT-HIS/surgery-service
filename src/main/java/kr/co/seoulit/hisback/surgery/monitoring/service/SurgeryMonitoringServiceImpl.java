@@ -49,7 +49,7 @@ public class SurgeryMonitoringServiceImpl implements SurgeryMonitoringService {
     private final OperatingRoomRepository operatingRoomRepository;
 
     /**
-     * 접수 대기 오더를 세기 위한 것 (2026-08-13).
+     * 접수 대기 오더를 세기 위한 것.
      *
      * <p>예전에는 요청접수(00) 수술을 셌지만, 요청이 SURGERY_ORDER 로 옮겨져 그 상태의
      * 수술이 더는 생기지 않는다. 대시보드가 "아직 배정 안 된 요청"을 보여주려면

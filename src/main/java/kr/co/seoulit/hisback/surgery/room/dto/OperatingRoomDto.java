@@ -21,17 +21,16 @@ import lombok.NoArgsConstructor;
 // ─────────────────────────────────────────────────────────────────────────────
 
 // @Data — Lombok 묶음 어노테이션. 아래를 한 번에 만들어준다.
-//   @Getter / @Setter / @ToString / @EqualsAndHashCode / @RequiredArgsConstructor
-//   요청 본문을 받을 때 Jackson 이 setter 로 값을 채우므로 @Setter 가 꼭 필요하다.
-//   (엔티티에는 @Data 를 쓰지 않는다 — @EqualsAndHashCode 가 연관 관계를 타고
-//    무한 순회하거나 지연 로딩을 강제로 깨우는 문제가 있어서다. 그래서 엔티티는
-//    @Getter/@Setter 를 따로 붙인다.)
+// @Getter / @Setter / @ToString / @EqualsAndHashCode / @RequiredArgsConstructor
+// 요청 본문을 받을 때 Jackson 이 setter 로 값을 채우므로 @Setter 가 꼭 필요하다.
+// (엔티티에는 @Data 를 쓰지 않는다 — @EqualsAndHashCode 가 연관 관계를 타고
+// 무한 순회하거나 지연 로딩을 강제로 깨우는 문제가 있어서다. 그래서 엔티티는 @Getter/@Setter 를 따로 붙인다.)
 @Data
 // @NoArgsConstructor — Jackson 이 JSON → 객체 변환 시 빈 객체를 먼저 만든다. 없으면 실패한다.
 @NoArgsConstructor
 // @AllArgsConstructor — 모든 필드를 받는 생성자.
-//   ServiceImpl 의 toDto() 가 new OperatingRoomDto(a, b, c, ...) 형태로 쓴다.
-//   순서가 곧 필드 선언 순서이므로, 필드를 중간에 끼워 넣으면 값이 밀린다. 주의할 것.
+// ServiceImpl 의 toDto() 가 new OperatingRoomDto(a, b, c, ...) 형태로 쓴다.
+// 순서가 곧 필드 선언 순서이므로, 필드를 중간에 끼워 넣으면 값이 밀린다. 주의할 것.
 @AllArgsConstructor
 public class OperatingRoomDto {
     // 필드명은 프론트 types.ts 의 SurgeryRoom 과 한 글자도 다르면 안 된다.

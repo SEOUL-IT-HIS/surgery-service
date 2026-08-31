@@ -59,7 +59,7 @@ public class SurgeryScheduleController {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getSchedules(date)));
     }
 
-    //getSchedule은 수술번호를 통해 특정 수술 정보를 조회해 ApiResponse로 반환한다
+    // getSchedule은 수술번호를 통해 특정 수술 정보를 조회해 ApiResponse로 반환한다
     @GetMapping("/{surgeryId}")
     public ResponseEntity<ApiResponse<SurgeryDto>> getSchedule(@PathVariable String surgeryId) {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getSchedule(surgeryId)));
@@ -80,7 +80,7 @@ public class SurgeryScheduleController {
     }
 
     // 배정 대기 목록은 오더로 옮겼다 — GET /api/surgery/orders?orderStatusCd=00
-    //   요청은 이제 SURGERY 가 아니라 SURGERY_ORDER 로 들어온다(2026-08-13 결정).
+    // 요청은 이제 SURGERY 가 아니라 SURGERY_ORDER 로 들어온다.
 
     /**
      * SL2-170: 수술실 배정 현황 조회
@@ -124,7 +124,7 @@ public class SurgeryScheduleController {
     // 수술 등록(진료·응급)은 오더로 옮겼다 — POST /api/surgery/orders, /orders/emergency
     //   수술은 오더가 수락(배정)될 때 만들어지므로, 여기서 직접 만드는 경로는 두지 않는다.
 
-    //updateSchedule은 PUT 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
+    // updateSchedule은 PUT 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
     @PutMapping("/{surgeryId}")
     public ResponseEntity<ApiResponse<SurgeryDto>> updateSchedule(
             @PathVariable String surgeryId, @Valid @RequestBody SurgeryDto request) {
@@ -139,7 +139,7 @@ public class SurgeryScheduleController {
      *
      * <p>물리 삭제 대신 상태 전이(04 취소)로 표현한다(§21.6).</p>
      *
-     * <p><b>본문과 사유가 모두 필수다</b>(2026-08-26). 예전에는 {@code required = false} 라
+     * <p><b>본문과 사유가 모두 필수다</b>. 예전에는 {@code required = false} 라
      * 본문 없이도 통과했는데, 그때는 이 엔드포인트가 반려까지 겸했기 때문이다. 반려가
      * 오더로 옮겨간 뒤로는 순수 취소 전용이라 사유를 빼놓을 이유가 없다.</p>
      *
@@ -210,14 +210,14 @@ public class SurgeryScheduleController {
                         surgeryScheduleService.assignNurse(surgeryId, request.getNurseId())));
     }
 
-    //getTodaySchedules는 GET 요청을 받아 금일 수술 목록을 조회해 ApiResponse로 받아 전달한다
+    // getTodaySchedules는 GET 요청을 받아 금일 수술 목록을 조회해 ApiResponse로 받아 전달한다
     // SL2-40: 금일 수술현황 대시보드
     @GetMapping("/today")
     public ResponseEntity<ApiResponse<List<SurgeryDto>>> getTodaySchedules() {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.getTodaySchedules()));
     }
 
-    //updateProgress는 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
+    // updateProgress는 PATCH 요청을 받아 SurgeryScheduleService로 전달(위임)하고, Service에서 받아온 결과를 ApiResponse로 받아 전달한다
     // SL2-39: 당일 실시간 진행상태 변경 (status_cd와 별도 트랙)
     @PatchMapping("/{surgeryId}/progress")
     public ResponseEntity<ApiResponse<SurgeryDto>> updateProgress(
