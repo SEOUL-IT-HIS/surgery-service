@@ -46,6 +46,13 @@ public class NursingRecordServiceImpl implements NursingRecordService {
     /** SL2-58: 간호기록 작성. */
     @Override
     public NursingRecordDto createNursingRecord(NursingRecordDto request) {
+        // SL2-327: 없는 수술에는 기록을 남길 수 없다.
+        //   조회에는 8/12 부터 이 가드가 있었는데 작성에는 빠져 있었다(2026-08-27 발견).
+        //   조회만 막으면 오타로 만든 행이 DB 에 남고, 정작 그 수술을 열어 보면
+        //   404 라 화면에서는 영영 보이지 않는다 — 지우지도 못하는 고아 행이 된다.
+        //   동의서·체크리스트·마취기록은 이미 작성에도 걸고 있어 그쪽에 맞춘다.
+        surgeryGuard.requireExists(request.getSurgeryId());
+
         // PK는 내부 식별자라 서버가 UUID로 채번한다(§14.2 `_id` → VARCHAR2(36))
         String nursingRecordId =
                 request.getNursingRecordId() != null

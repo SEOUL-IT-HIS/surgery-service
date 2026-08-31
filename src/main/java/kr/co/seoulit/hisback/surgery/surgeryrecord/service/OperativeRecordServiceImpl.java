@@ -67,6 +67,10 @@ public class OperativeRecordServiceImpl implements OperativeRecordService {
     /** SL2-55: 수술기록 작성 — 상태를 안 보내면 초안(01)으로 시작한다. */
     @Override
     public OperativeRecordDto createOperativeRecord(OperativeRecordDto request) {
+        // 없는 수술에는 기록지를 만들 수 없다(2026-08-27) — 간호기록과 같은 누락이었다.
+        //   조회에만 가드가 있어 오타로 만든 행이 DB 에만 남고 화면에서는 404 로 가려졌다.
+        surgeryGuard.requireExists(request.getSurgeryId());
+
         // PK는 내부 식별자라 서버가 UUID로 채번한다(§14.2 `_id` → VARCHAR2(36))
         String recordId = request.getRecordId() != null ? request.getRecordId() : UUID.randomUUID().toString();
         OperativeRecord record =
