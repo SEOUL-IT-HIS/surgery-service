@@ -10,8 +10,6 @@ import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
 import kr.co.seoulit.hisback.surgery.consent.repository.ConsentRepository;
 import kr.co.seoulit.hisback.surgery.consent.type.ConsentType;
-import kr.co.seoulit.hisback.surgery.room.entity.OperatingRoom;
-import kr.co.seoulit.hisback.surgery.room.repository.OperatingRoomRepository;
 import kr.co.seoulit.hisback.surgery.surgeryorder.service.SurgeryOrderCanceller;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -52,27 +50,9 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      */
     private static final String GROUP_PROGRESS = "SURGERY_PROGRESS_CD";
 
-    /**
-     * OR_STATUS_CD 01 = 사용가능 (SL2-169).
-     *
-     * <p>OperatingRoomServiceImpl·SurgeryMonitoringServiceImpl 에도 같은 값이 있다.
-     * 세 곳에 흩어졌으니 room 패키지에 공용 상수로 뽑는 것이 맞지만, 그 패키지 소유라
-     * 여기서 정하지 않는다.</p>
-     */
-    private static final String ROOM_STATUS_AVAILABLE = "01";
-
     private final SurgeryRepository surgeryRepository;
     private final SurgeryStatusHistoryRepository historyRepository;
     private final CommonCodeCache commonCodeCache;
-
-    /**
-     * SL2-169: 수술실 존재·가용 상태 확인용.
-     *
-     * <p>같은 서비스 안의 다른 패키지 리포지토리를 직접 쓴다. 남의 서비스 DB 가 아니라
-     * 우리 테이블이라 §21.2 에 걸리지 않는다. OperatingRoomService 를 거치지 않는 이유는
-     * 존재·상태만 필요해서다 — DTO 변환과 페이징이 붙은 조회를 부를 이유가 없다.</p>
-     */
-    private final OperatingRoomRepository operatingRoomRepository;
 
     /**
      * SL2-179: 수술 취소를 오더에 반영하기 위한 협력자.
@@ -96,13 +76,11 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
             SurgeryRepository surgeryRepository,
             SurgeryStatusHistoryRepository historyRepository,
             CommonCodeCache commonCodeCache,
-            OperatingRoomRepository operatingRoomRepository,
             SurgeryOrderCanceller surgeryOrderCanceller,
             ConsentRepository consentRepository) {
         this.surgeryRepository = surgeryRepository;
         this.historyRepository = historyRepository;
         this.commonCodeCache = commonCodeCache;
-        this.operatingRoomRepository = operatingRoomRepository;
         this.surgeryOrderCanceller = surgeryOrderCanceller;
         this.consentRepository = consentRepository;
     }
@@ -218,6 +196,10 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         surgery.setStatusCd(SurgeryStatus.SCHEDULED);
         surgery.setEmergencyYn(
                 "Y".equals(request.getEmergencyYn()) ? "Y" : "N");
+        // 마취 여부는 안 보내면 시행(Y)으로 본다. 마취가 있는데 없다고 기록되는 쪽이
+        // 위험하므로 안전한 쪽으로 기울여 둔다(DDL 기본값도 'Y' 다).
+        surgery.setAnesthesiaYn(
+                "N".equals(request.getAnesthesiaYn()) ? "N" : "Y");
         Surgery saved = surgeryRepository.save(surgery);
         recordHistory(
                 saved.getSurgeryId(), StatusChangeType.STATUS, null, SurgeryStatus.SCHEDULED, null);
@@ -264,19 +246,27 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "환자는 수정할 수 없습니다");
         }
 
+        /*
+         * 배정 항목은 여기서도 바꿀 수 없다.
+         *
+         * 개별 배정 API 4종을 막아 놓고 이 PUT 을 열어 두면 그냥 우회로가 하나 남는
+         * 것이다 — 예전에는 실제로 그랬다. 여기서 roomCode·anesthesiologistId·nurseId·
+         * surgeonId 를 전부 덮어쓰고 있었고, 보내지 않은 값은 해제까지 됐다.
+         *
+         * 무시하지 않고 거절하는 이유는, 무시하면 요청자가 바뀐 줄 알고 있게 되기
+         * 때문이다(환자 변경을 위에서 거절하는 것과 같은 이유다).
+         */
+        rejectAssignmentChange("집도의", request.getSurgeonId(), surgery.getSurgeonId());
+        rejectAssignmentChange("수술실", request.getRoomCode(), surgery.getRoomCode());
+        rejectAssignmentChange(
+                "마취의", request.getAnesthesiologistId(), surgery.getAnesthesiologistId());
+        rejectAssignmentChange("간호사", request.getNurseId(), surgery.getNurseId());
+
+        // 남은 것은 일정과 수술 내용이다. 이쪽은 배정 조합을 건드리지 않는다.
         surgery.setSurgeryDt(request.getSurgeryDt());
-        surgery.setSurgeonId(request.getSurgeonId());
         surgery.setSurgeryName(request.getSurgeryName());
         // SL2-188: 프론트가 보내는데 반영되지 않던 항목이다. 계약에 있으면 반영해야 한다.
         surgery.setSurgeryTypeCd(request.getSurgeryTypeCd());
-
-        // 연관 배정 정보 — 전체 교체 계약이라 보내지 않은 값은 해제된다.
-        // 수술실을 비우면 배정 대기로 되돌아가는 셈이지만 상태(01)는 그대로다.
-        // 상태까지 되돌릴지는 취소 시 일괄 해제(SL2-179)와 함께 정해야 할 문제라
-        // 여기서 임의로 정하지 않는다.
-        surgery.setRoomCode(request.getRoomCode());
-        surgery.setAnesthesiologistId(request.getAnesthesiologistId());
-        surgery.setNurseId(request.getNurseId());
 
         return toDto(surgeryRepository.save(surgery));
     }
@@ -343,109 +333,102 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     }
 
     /**
-     * SL2-169: 개별 배정을 바꿀 수 있는 상태인지 확인한다.
+     * 개별 배정 변경을 거절한다.
      *
-     * <p>요청접수(00)·예약(01)에서만 배정을 손댈 수 있다. 진행중은 환자가 이미 수술대에
-     * 있어 집도의·수술실을 바꾸는 것이 의미가 없고, 완료·취소는 확정된 기록이다.</p>
+     * <p><b>이 메서드는 항상 예외를 던진다.</b> 아래 네 개의 개별 배정 API 가 전부 이것만
+     * 호출한다 — 즉 개별 배정은 더 이상 존재하지 않는 기능이다.</p>
      *
-     * <p>지금까지 이 검사가 없어 <b>완료된 수술의 수술실을 바꿀 수 있었다</b>.
-     * updateSchedule(SL2-188)에는 같은 제한을 걸어 뒀는데 이 네 개가 우회로였다.</p>
+     * <h3>왜 기능을 없앴는가</h3>
+     *
+     * <p>배정은 오더를 승인하는 순간 <b>한 번에 확정된다</b>. 수술실·집도의·마취의·간호사가
+     * 그때 다 정해지고, 그 조합을 전제로 뒤의 모든 일이 굴러간다 — 수술실이 잡히고,
+     * 그 팀이 일정을 비우고, 체크리스트가 그 팀 이름으로 열린다.</p>
+     *
+     * <p>그런데 이 네 개의 API 는 그 뒤에 집도의 한 명만, 수술실 하나만 조용히 바꿀 수
+     * 있게 해 뒀다. 문제는 <b>아무 흔적도 남지 않는다</b>는 것이다. 이 메서드들은
+     * {@code recordHistory} 를 부르지 않아서, 수술실이 3번에서 5번으로 바뀌어도
+     * 이력 테이블에는 아무것도 없다. 수술 당일에 "왜 여기 잡혀 있지"를 되짚을 방법이
+     * 없었다는 뜻이다.</p>
+     *
+     * <p>더구나 배정이 부분적으로 바뀌면 승인 시점에 걸어 둔 검증이 무너진다. 예를 들어
+     * 마취 시행(anesthesiaYn='Y')이라 마취의를 필수로 받아 놓고는, 이 API 로 마취의를
+     * null 로 해제할 수 있었다.</p>
+     *
+     * <h3>그럼 잘못 배정한 건 어떻게 고치나</h3>
+     *
+     * <p><b>수술을 취소하고 다시 요청받는다.</b> 취소는 사유가 남고(SL2-178) 이력에도
+     * 기록되며, 오더도 취소(03)로 따라 내려가 진료 쪽이 결과를 안다. 배정을 몰래 고치는
+     * 것과 달리 관련된 사람이 전부 알게 된다.</p>
+     *
+     * <p>이것이 번거로운 절차인 것은 맞고, 실제 병원 업무에서 배정 변경이 흔하다면
+     * "배정 변경" 을 사유와 이력을 갖춘 정식 기능으로 다시 만들어야 한다. 지금 없앤 것은
+     * 그 기능이 아니라, 이력 없이 값만 갈아치우던 우회로다.</p>
      */
-    private void requireAssignable(Surgery surgery) {
-        // 수술은 예약(01)에서 시작한다 — 요청접수(00)는 이제 오더의 상태다.
-        if (!SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_SURGERY_STATUS, "배정 변경 시도 상태=" + surgery.getStatusCd());
-        }
+    private void rejectIndividualAssignment(String field) {
+        throw new BusinessException(
+                ErrorCode.ASSIGNMENT_LOCKED,
+                field + " 개별 변경은 지원하지 않습니다. 배정을 바꾸려면 수술을 취소하고 다시 요청받으십시오.");
     }
 
     /**
-     * SL2-169: 수술실이 실재하고 배정 가능한 상태인지 확인한다.
+     * 일정 수정(PUT)이 배정 항목을 바꾸려 하면 거절한다.
      *
-     * <p>지금까지 확인이 없어 {@code roomCode="없는방"} 도 그대로 저장됐다.
-     * 화면이 목록에서 고르게 하고 있어 드러나지 않았을 뿐, API 를 직접 부르면 통과한다.</p>
-     *
-     * <p><b>아직 못 하는 검증</b>(SL2-169 요구사항 중) — 장비 충족 여부와 시간 충돌은
-     * 데이터가 없어 확인할 수 없다. 수술이 필요 장비를 선언하는 자리가 없고,
-     * {@code surgery_dt} 가 DATE 라 같은 날 같은 방에 두 건이 잡혀도 겹치는지 알 수 없다.
-     * 시각 컬럼(예: scheduled_start_at)이 생기면 그때 여기에 추가한다.</p>
+     * <p>보내지 않은 값(null)은 "안 건드리겠다"로 본다 — 전체 교체 계약이던 시절에는
+     * 이것이 해제를 뜻했지만, 이제 해제할 수 있는 항목이 없으므로 그 해석은 성립하지
+     * 않는다. 값을 보냈는데 지금과 다를 때만 막는다.</p>
      */
-    private void requireRoomAssignable(String roomCode) {
-        OperatingRoom room =
-                operatingRoomRepository
-                        .findById(roomCode)
-                        .orElseThrow(
-                                () -> new BusinessException(ErrorCode.SURGERY_ROOM_NOT_FOUND, roomCode));
-
-        if (!ROOM_STATUS_AVAILABLE.equals(room.getStatusCd())) {
-            throw new BusinessException(
-                    ErrorCode.SURGERY_ROOM_NOT_AVAILABLE, roomCode + " 상태=" + room.getStatusCd());
+    private void rejectAssignmentChange(String field, String requested, String current) {
+        if (requested == null || requested.isBlank()) {
+            return;
+        }
+        if (!requested.equals(current)) {
+            rejectIndividualAssignment(field);
         }
     }
 
-    /**
-     * SL2-13: 집도의 배정
+    /*
+     * ── 개별 배정 API 4종 (SL2-13 집도의 / SL2-15·166 수술실 / SL2-43 마취의 / SL2-63 간호사)
      *
-     * <p>직원 실재 여부는 확인하지 않는다 — 병원관리 서비스 소유라 확인하려면 그쪽 API 를
-     * 호출해야 하는데, 지금 그 businessdelegate 가 없다(§21.9). 화면이 admin 에서 받은
-     * 목록에서 고르게 해 걸러진다.</p>
+     * 넷 다 거절만 한다. 사유는 rejectIndividualAssignment 에 적었다.
      *
-     * <p>집도의는 <b>해제할 수 없다</b>. 수술에 집도의가 없는 상태는 업무상 성립하지 않고,
-     * DDL 도 NOT NULL 이다. 다른 셋은 null 로 해제할 수 있다(SL2-166).</p>
+     * 엔드포인트를 지우지 않고 남겨 둔 이유 — 프론트가 아직 이 경로를 알고 있고,
+     * 라우트를 통째로 없애면 404 가 떠서 "서버가 죽었나" 로 읽힌다. 400 + SUR059 로
+     * 거절하면 화면에 "배정이 확정된 수술은 변경할 수 없습니다" 가 뜬다.
+     *
+     * 프론트에서 이 호출이 완전히 사라지고 나면(배정 상세 잠금) 그때 엔드포인트와
+     * 이 메서드들을 함께 지운다.
      */
+
     @Override
     @Transactional
     public SurgeryDto assignSurgeon(String surgeryId, String surgeonId) {
-        Surgery surgery = findOrThrow(surgeryId);
-        requireAssignable(surgery);
-        if (surgeonId == null || surgeonId.isBlank()) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "집도의는 해제할 수 없습니다");
-        }
-        surgery.setSurgeonId(surgeonId);
-        return toDto(surgeryRepository.save(surgery));
+        findOrThrow(surgeryId); // 없는 수술이면 404 가 먼저 나가야 한다
+        rejectIndividualAssignment("집도의");
+        return null; // 도달하지 않는다
     }
 
-    /**
-     * SL2-15 배정 / SL2-166 변경·해제
-     *
-     * <p>{@code roomCode} 가 비어 있으면 <b>배정 해제</b>다. 상태(01 예약)는 되돌리지 않는다 —
-     * 되돌리면 배정 대기 목록에 다시 뜨는데, 마취의·간호사는 그대로 남아 "배정 대기인데
-     * 마취의가 있는" 어정쩡한 건이 된다. 요청접수로 완전히 되돌리는 것은 취소 시 일괄
-     * 해제(SL2-179)와 함께 정할 문제다.</p>
-     */
     @Override
     @Transactional
     public SurgeryDto assignRoom(String surgeryId, String roomCode) {
-        Surgery surgery = findOrThrow(surgeryId);
-        requireAssignable(surgery);
-
-        if (roomCode == null || roomCode.isBlank()) {
-            surgery.setRoomCode(null);
-        } else {
-            requireRoomAssignable(roomCode);
-            surgery.setRoomCode(roomCode);
-        }
-        return toDto(surgeryRepository.save(surgery));
+        findOrThrow(surgeryId);
+        rejectIndividualAssignment("수술실");
+        return null;
     }
 
-    /** SL2-43: 마취의 배정. 비우면 해제된다 — 배정 후 나중에 채우는 항목이라 해제도 업무상 있다. */
     @Override
     @Transactional
     public SurgeryDto assignAnesthesiologist(String surgeryId, String anesthesiologistId) {
-        Surgery surgery = findOrThrow(surgeryId);
-        requireAssignable(surgery);
-        surgery.setAnesthesiologistId(blankToNull(anesthesiologistId));
-        return toDto(surgeryRepository.save(surgery));
+        findOrThrow(surgeryId);
+        rejectIndividualAssignment("마취의");
+        return null;
     }
 
-    /** SL2-63: 간호사 배정. 비우면 해제된다. */
     @Override
     @Transactional
     public SurgeryDto assignNurse(String surgeryId, String nurseId) {
-        Surgery surgery = findOrThrow(surgeryId);
-        requireAssignable(surgery);
-        surgery.setNurseId(blankToNull(nurseId));
-        return toDto(surgeryRepository.save(surgery));
+        findOrThrow(surgeryId);
+        rejectIndividualAssignment("간호사");
+        return null;
     }
 
     // SL2-225/235/236 배정 대기 목록은 오더로 — SurgeryOrderService.getOrders
@@ -608,6 +591,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
                 .surgeryName(request.getSurgeryName())
                 .statusCd(request.getStatusCd())
                 .emergencyYn(request.getEmergencyYn())
+                .anesthesiaYn(request.getAnesthesiaYn())
                 .build();
     }
 
@@ -626,6 +610,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
                 s.getSurgeryTypeCd(),
                 s.getSurgeryName(),
                 s.getEmergencyYn(),
+                s.getAnesthesiaYn(),
                 s.getActualStartDt(),
                 s.getActualEndDt(),
                 s.getCreatedAt(),

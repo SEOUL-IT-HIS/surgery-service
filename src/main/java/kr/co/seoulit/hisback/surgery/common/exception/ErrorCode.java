@@ -45,7 +45,11 @@ public enum ErrorCode {
 
     // SL2-36/44 수술 오더
     ORDER_NOT_FOUND(404, "SUR057", "해당 수술 요청이 존재하지 않습니다"),
-    INVALID_ORDER_STATUS(400, "SUR058", "이미 처리된 수술 요청입니다");
+    INVALID_ORDER_STATUS(400, "SUR058", "이미 처리된 수술 요청입니다"),
+
+    // 배정은 오더를 승인하는 순간 한 번에 확정된다. 그 뒤로는 집도의·수술실·마취의·
+    // 간호사를 개별로 바꿀 수 없다 — 바꾸려면 수술을 취소하고 다시 요청받아야 한다.
+    ASSIGNMENT_LOCKED(400, "SUR059", "배정이 확정된 수술은 변경할 수 없습니다");
 
     private final int code;           // HTTP status
     private final String messageCode; // 프론트 messages.ts 매핑 키 (SURxxx)

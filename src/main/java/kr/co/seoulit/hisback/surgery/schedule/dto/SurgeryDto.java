@@ -23,8 +23,11 @@ import lombok.NoArgsConstructor;
  * 수락(배정)될 때만 만들어진다. 요청 접수용 DTO 는 surgeryorder 패키지의
  * {@code CreateSurgeryOrderRequest} 다. 여기 남은 검증은 수정(PUT)에서 쓰인다.</p>
  *
- * <p>배정 필드(roomCode·anesthesiologistId·nurseId)는 비워 둘 수 있다. 마취의·간호사는
- * 수술 당일까지 채워도 되고, 개별 배정 API(/room, /anesthesiologist, /nurse)에서 바꾼다.</p>
+ * <p><b>배정 필드(roomCode·anesthesiologistId·nurseId)에 제약이 없는 것은 여기가
+ * 응답 겸용 DTO 이기 때문이지, 비워도 된다는 뜻이 아니다.</b> 배정은 오더 수락 시점에
+ * 한 번에 확정되며, 그 필수 여부는 {@code AssignSurgeryOrderRequest} 가 선언한다.
+ * 배정이 끝난 뒤에는 개별 배정 API 가 전부 400 으로 거절하므로 이 필드들은
+ * 사실상 읽기 전용이다.</p>
  */
 @Data
 @NoArgsConstructor
@@ -52,6 +55,10 @@ public class SurgeryDto {
     private String surgeryTypeCd;
     private String surgeryName;
     private String emergencyYn;
+
+    /** 마취 시행 여부(Y/N). 배정할 때 정해지고, 이후 수술 화면은 읽기만 한다 */
+    private String anesthesiaYn;
+
     private LocalDate actualStartDt;
     private LocalDate actualEndDt;
     private LocalDateTime createdAt;

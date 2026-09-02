@@ -147,6 +147,7 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
         SurgeryOrder order = findOrThrow(orderId);
         requireReceived(order);
         requireRoomAssignable(request.getRoomCode());
+        requireAnesthesiologistWhenAnesthetized(request);
 
         // 확정일을 안 보내면 진료가 원한 날을 그대로 쓴다
         LocalDate surgeryDt =
@@ -157,6 +158,7 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
         toCreate.setSurgeonId(order.getSurgeonId());
         toCreate.setSurgeryDt(surgeryDt);
         toCreate.setRoomCode(request.getRoomCode());
+        toCreate.setAnesthesiaYn(request.getAnesthesiaYn());
         toCreate.setAnesthesiologistId(blankToNull(request.getAnesthesiologistId()));
         toCreate.setNurseId(blankToNull(request.getNurseId()));
         toCreate.setSurgeryTypeCd(order.getSurgeryTypeCd());
@@ -238,6 +240,27 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
         if (!ROOM_STATUS_AVAILABLE.equals(room.getStatusCd())) {
             throw new BusinessException(
                     ErrorCode.SURGERY_ROOM_NOT_AVAILABLE, roomCode + " 상태=" + room.getStatusCd());
+        }
+    }
+
+    /**
+     * 마취를 시행하는 수술이면 마취과 의사가 있어야 한다.
+     *
+     * <p>DTO 의 {@code @NotBlank} 로 표현할 수 없는 규칙이다 — 필수 여부가 다른 필드
+     * ({@code anesthesiaYn}) 값에 달려 있어 형식 검증이 아니라 업무 규칙이고,
+     * 그런 것은 서비스가 본다(§11.5).</p>
+     *
+     * <p>반대 방향(무마취인데 마취의를 보낸 경우)은 막지 않는다. 배정 담당자가 마취
+     * 여부를 잘못 골랐을 수도 있고, 마취의가 참관만 하는 경우도 있다. 값이 남아 있는
+     * 것 자체가 위험을 만들지는 않으므로 그대로 저장한다.</p>
+     */
+    private void requireAnesthesiologistWhenAnesthetized(AssignSurgeryOrderRequest request) {
+        if (!"Y".equals(request.getAnesthesiaYn())) {
+            return;
+        }
+        if (blankToNull(request.getAnesthesiologistId()) == null) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST, "마취를 시행하는 수술은 마취과 의사를 배정해야 합니다");
         }
     }
 

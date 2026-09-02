@@ -82,6 +82,18 @@ public class Surgery {
     @Column(name = "emergency_yn", length = 1, nullable = false)
     private String emergencyYn;
 
+    // 마취 시행 여부: Y시행 / N미시행(무마취 시술)
+    //
+    // surgery_type_cd 로 대신하지 않는 이유는 바로 위 TODO 때문이다 — 그 코드는
+    // 마취 방식과 입원 형태가 섞여 있어 "마취가 붙느냐"를 물을 수 없다.
+    //
+    // 이 값이 Y 면 배정 시 마취과 의사가 필수다(SurgeryOrderServiceImpl.assignOrder).
+    // N 은 국소마취 없이 하는 시술 — 단순 봉합, 표재성 종물 제거 같은 것들이다.
+    // 선택값으로 두지 않은 이유는, 그러면 "마취의를 넣는 걸 잊은 것"과
+    // "원래 마취가 없는 것"이 DB 에서 똑같이 NULL 로 보이기 때문이다.
+    @Column(name = "anesthesia_yn", length = 1, nullable = false)
+    private String anesthesiaYn;
+
     @Column(name = "actual_start_dt")
     private LocalDate actualStartDt;
 
