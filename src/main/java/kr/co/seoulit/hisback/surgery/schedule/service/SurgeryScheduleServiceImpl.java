@@ -8,6 +8,7 @@ import kr.co.seoulit.hisback.surgery.common.cache.CommonCodeCache;
 import kr.co.seoulit.hisback.surgery.common.exception.BusinessException;
 import kr.co.seoulit.hisback.surgery.common.exception.ErrorCode;
 import kr.co.seoulit.hisback.surgery.common.response.PageResponse;
+import kr.co.seoulit.hisback.surgery.checklist.repository.SurgeryChecklistRepository;
 import kr.co.seoulit.hisback.surgery.consent.repository.ConsentRepository;
 import kr.co.seoulit.hisback.surgery.consent.type.ConsentType;
 import kr.co.seoulit.hisback.surgery.surgeryorder.service.SurgeryOrderCanceller;
@@ -42,6 +43,9 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      */
     private static final String GROUP_CANCEL_REASON = "SURGERY_CANCEL_CD";
 
+    /** 체크리스트 Sign Out 단계. SurgeryChecklistServiceImpl 의 PHASE_SIGN_OUT 과 같은 값이다 */
+    private static final String PHASE_SIGN_OUT = "03";
+
     /**
      * 진행단계 코드 그룹 (SL2-39).
      *
@@ -72,17 +76,27 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
      */
     private final ConsentRepository consentRepository;
 
+    /**
+     * 수술 완료 전 Sign Out 확인용 — <b>읽기 전용</b>이다.
+     *
+     * <p>ConsentRepository 와 같은 이유로 서비스가 아니라 리포지토리를 직접 잡았다.
+     * "그 단계가 완료됐는가" 하나만 묻기 때문이다.</p>
+     */
+    private final SurgeryChecklistRepository checklistRepository;
+
     public SurgeryScheduleServiceImpl(
             SurgeryRepository surgeryRepository,
             SurgeryStatusHistoryRepository historyRepository,
             CommonCodeCache commonCodeCache,
             SurgeryOrderCanceller surgeryOrderCanceller,
-            ConsentRepository consentRepository) {
+            ConsentRepository consentRepository,
+            SurgeryChecklistRepository checklistRepository) {
         this.surgeryRepository = surgeryRepository;
         this.historyRepository = historyRepository;
         this.commonCodeCache = commonCodeCache;
         this.surgeryOrderCanceller = surgeryOrderCanceller;
         this.consentRepository = consentRepository;
+        this.checklistRepository = checklistRepository;
     }
 
     /**
@@ -491,7 +505,11 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         //
         // 수술 동의서(01)만 본다 — 마취 동의서는 마취기록을 쓸 때 그쪽이 검사한다.
         // 여기서 둘 다 요구하면 마취 없는 수술(국소마취 등)이 시작조차 못 한다.
-        if (!consentRepository.existsBySurgeryIdAndConsentTypeCd(surgeryId, ConsentType.SURGERY)) {
+        //
+        // signedYn='Y' 까지 확인한다(2026-09-03). 체크를 해제하면 행은 남고 값만 N 이
+        // 되므로, 예전처럼 행 존재만 보면 해제한 동의서도 받은 것으로 통과한다.
+        if (!consentRepository.existsBySurgeryIdAndConsentTypeCdAndSignedYn(
+                surgeryId, ConsentType.SURGERY, "Y")) {
             throw new BusinessException(
                     ErrorCode.CONSENT_NOT_CONFIRMED, "수술 동의서 미확인 surgeryId=" + surgeryId);
         }
@@ -561,6 +579,27 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         String before = surgery.getStatusCd();
         // SL2-281: 검사가 없던 동안 취소·완료된 수술도 완료 처리가 200 으로 통과했다.
         requireTransition(before, SurgeryStatus.COMPLETED);
+
+        /*
+          Sign Out 체크리스트가 끝나야 완료할 수 있다.
+
+          Sign Out 은 환자가 수술실을 떠나기 전에 하는 마지막 확인이다 — 기구·거즈·바늘
+          수량, 검체 표기, 장비 이상 여부. 수술을 완료로 넘긴 뒤에 하면 확인할 기회가
+          이미 지나간 뒤라, 기록만 남고 안전 확인으로서는 의미가 없다.
+
+          시작을 동의서로 막는 것(SL2-217)과 짝이 되는 규칙이다 — 들어갈 때 동의서,
+          나올 때 Sign Out.
+
+          완료(Y)까지 본다. 작성 시작만 해 두면 completedYn='N' 인 행이 생기므로
+          행 존재만 보면 아무것도 확인하지 않은 건도 통과한다.
+        */
+        if (!checklistRepository.existsBySurgeryIdAndPhaseCdAndCompletedYn(
+                surgeryId, PHASE_SIGN_OUT, "Y")) {
+            throw new BusinessException(
+                    ErrorCode.CHECKLIST_SIGN_OUT_INCOMPLETE,
+                    "Sign Out 미완료 surgeryId=" + surgeryId);
+        }
+
         surgery.setStatusCd(SurgeryStatus.COMPLETED);
         if (surgery.getActualEndDt() == null) {
             // actual_end_dt는 DDL상 DATE(§14.2 `_dt` = 날짜)라 LocalDate를 쓴다.

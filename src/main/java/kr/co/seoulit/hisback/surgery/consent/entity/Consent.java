@@ -4,7 +4,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,9 +16,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 /**
  * 동의서 엔티티 (구 ANESTHESIA_CONSENT에서 분리된 CONSENT 테이블)
  *
- * <p>전자문서 원본은 보관하지 않고(§21.5, 부서 비치 종이 양식 사용), 동의 여부/일시/서명자만
- * 관리한다. signed_by는 그 화면에서 직접 입력·확정되는 원본 데이터라 §14.1 스냅샷 금지
- * 규칙의 예외로 그대로 저장한다.</p>
+ * <p>전자문서 원본은 보관하지 않는다(§21.5, 부서 비치 종이 양식 사용). 시스템이 남기는
+ * 것은 <b>그 종이를 받았는가</b> 하나뿐이다.</p>
+ *
+ * <p><b>서명자·서명일은 2026-09-03 제거했다.</b> 종이에 이미 적혀 있는 값을 화면에서
+ * 다시 타이핑하게 하고 있었다 — 입력만 늘고 틀릴 여지도 생겼다. 확인 절차가
+ * 체크리스트처럼 체크 한 번으로 끝나도록 컬럼도 플래그 하나로 줄였다.
+ * 언제 체크했는지는 created_at·updated_at 에 남는다.</p>
  *
  * <p><b>서명자 관계(signer_relation_cd)는 2026-08-10 제거했다.</b> 프로젝트 범위를
  * "동의 여부 확인"으로 축소하기로 정해졌고, admin 에서도 RELATION_CD 코드그룹이 함께
@@ -52,12 +55,12 @@ public class Consent {
     @Column(name = "consent_type_cd", length = 36)
     private String consentTypeCd;
 
-    // §14.1 스냅샷 금지 예외: 그 화면에서 직접 입력·확정되는 원본 데이터
-    @Column(name = "signed_by", length = 50)
-    private String signedBy;
-
-    @Column(name = "signed_dt")
-    private LocalDate signedDt;
+    // 동의서 수령 여부. 프로젝트 표준 Y/N 플래그(§14.2)
+    //
+    // 체크를 되돌릴 수 있어야 해서 행을 지우지 않고 N 으로 둔다 — 지우면
+    // "받은 적 없음"과 "받았다가 취소함"이 구분되지 않는다(§21.6).
+    @Column(name = "signed_yn", length = 1, nullable = false)
+    private String signedYn;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -1,8 +1,6 @@
 package kr.co.seoulit.hisback.surgery.consent.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -38,13 +36,16 @@ public class ConsentDto {
     @NotBlank
     private String consentTypeCd;
 
-    /** 서명자 성명 — 이 화면에서 직접 입력받는 원본이라 저장한다(§14.1 스냅샷 금지의 예외) */
-    @NotBlank
-    private String signedBy;
-
-    /** 서명일 — §14.2 `_dt` = DATE (yyyy-MM-dd) */
-    @NotNull
-    private LocalDate signedDt;
+    /**
+     * 동의서 수령 여부(Y/N).
+     *
+     * <p>서명자·서명일을 대신한다(2026-09-03). 종이에 이미 적혀 있는 값을 화면에서
+     * 다시 타이핑하게 하고 있었고, 시스템이 실제로 필요한 것은 "받았는가" 하나였다.</p>
+     *
+     * <p>보내지 않으면 서버가 Y 로 본다 — 이 API 를 부르는 대부분이 체크를 뜻하기
+     * 때문이다. 해제할 때만 명시적으로 "N" 을 보낸다.</p>
+     */
+    private String signedYn;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

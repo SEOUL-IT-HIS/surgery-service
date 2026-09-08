@@ -108,8 +108,11 @@ public class AnesthesiaRecordServiceImpl implements AnesthesiaRecordService {
         //   같은 성격의 규칙이다(SUR051).
         //
         //   마취 동의서는 별도 테이블이 아니라 CONSENT 의 consent_type_cd='02' 행이다.
-        if (!consentRepository.existsBySurgeryIdAndConsentTypeCd(
-                request.getSurgeryId(), ConsentType.ANESTHESIA)) {
+        //
+        //   signedYn='Y' 까지 확인한다(2026-09-03). 체크를 해제하면 행은 남고 값만 N 이
+        //   되므로, 행 존재만 보면 해제한 동의서도 받은 것으로 통과한다.
+        if (!consentRepository.existsBySurgeryIdAndConsentTypeCdAndSignedYn(
+                request.getSurgeryId(), ConsentType.ANESTHESIA, "Y")) {
             throw new BusinessException(
                     ErrorCode.CONSENT_NOT_CONFIRMED, "마취 동의서 미확인 surgeryId=" + request.getSurgeryId());
         }

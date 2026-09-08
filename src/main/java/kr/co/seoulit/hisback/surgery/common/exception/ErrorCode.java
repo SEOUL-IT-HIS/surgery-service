@@ -22,6 +22,10 @@ public enum ErrorCode {
     // SUR041 은 프론트에서 장비 삭제 실패 문구로 이미 점유 중이므로 비워 둔다(messages.ts).
     OPERATIVE_RECORD_NOT_FOUND(404, "SUR042", "해당 수술기록이 존재하지 않습니다"),
     OPERATIVE_RECORD_ALREADY_FIXED(400, "SUR043", "확정된 수술기록은 수정할 수 없습니다"),
+    // 2026-09-03 이후 아무도 던지지 않는다 — 동의서 등록이 "있으면 갱신"으로 바뀌면서
+    // 중복이 오류가 아니게 됐다(체크 해제를 지원해야 해서다). 코드를 지우지 않고 남기는
+    // 이유는 프론트 messages.ts 가 이미 SUR044 자리를 잡고 있고, 번호를 재사용하면
+    // 옛 클라이언트가 엉뚱한 문구를 띄우기 때문이다.
     CONSENT_IS_INSERT_ONE_TO_ONE(400, "SUR044", "수술 동의서는 1:1로만 등록할 수 있습니다"),
     SURGERY_ROOM_NOT_AVAILABLE(400, "SUR045", "점검중이거나 폐쇄된 수술실은 배정할 수 없습니다"),
     CONSENT_NOT_FOUND(404, "SUR046", "해당 동의서가 존재하지 않습니다"),
@@ -49,7 +53,13 @@ public enum ErrorCode {
 
     // 배정은 오더를 승인하는 순간 한 번에 확정된다. 그 뒤로는 집도의·수술실·마취의·
     // 간호사를 개별로 바꿀 수 없다 — 바꾸려면 수술을 취소하고 다시 요청받아야 한다.
-    ASSIGNMENT_LOCKED(400, "SUR059", "배정이 확정된 수술은 변경할 수 없습니다");
+    ASSIGNMENT_LOCKED(400, "SUR059", "배정이 확정된 수술은 변경할 수 없습니다"),
+
+    // Sign Out 은 환자가 수술실을 떠나기 전에 하는 마지막 확인이다 — 기구·거즈·바늘
+    // 수량, 검체 표기, 장비 이상 여부. 그것을 안 하고 수술을 완료 처리하면 확인할
+    // 기회가 지나간 뒤에 기록만 남는다. SUR051(이전 단계 미완료)과는 다른 상황이라
+    // 코드를 따로 둔다 — 그쪽은 체크리스트 안의 순서, 이쪽은 수술 종료 조건이다.
+    CHECKLIST_SIGN_OUT_INCOMPLETE(400, "SUR060", "Sign Out 체크리스트가 완료되지 않았습니다");
 
     private final int code;           // HTTP status
     private final String messageCode; // 프론트 messages.ts 매핑 키 (SURxxx)

@@ -95,10 +95,21 @@ public class ConsentServiceImpl implements ConsentService {
     }
 
     /**
-     * SL2-53: 동의 확인 기록
+     * SL2-53: 동의 확인 기록 — <b>체크 한 번이 곧 이 호출이다.</b>
      *
-     * <p>같은 수술에 같은 종류의 동의서를 두 번 남기지 않는다. 재동의는 기존 행 수정이 아니라
-     * 업무 재정의 대상이라 여기서 막는다(§21.6 이력 보존).</p>
+     * <h3>중복 등록 거절에서 갱신으로 바꾼 이유</h3>
+     *
+     * <p>예전에는 같은 수술·같은 종류가 이미 있으면 SUR044 로 거절했다. 동의서가
+     * 서명 시점의 사실 기록이라 덮어쓰면 안 된다는 판단이었고, 서명자·서명일을
+     * 저장하던 시절에는 맞는 규칙이었다.</p>
+     *
+     * <p>지금은 남기는 것이 {@code signedYn} 하나뿐이라 사정이 다르다. 화면이
+     * 체크박스가 되면서 <b>체크를 되돌리는 일</b>이 정상 동작에 포함됐는데,
+     * 거절 규칙을 그대로 두면 잘못 누른 체크를 풀 방법이 없다. 행을 지우는 것은
+     * 더 나쁘다 — "받은 적 없음"과 "받았다가 취소함"이 구분되지 않는다(§21.6).</p>
+     *
+     * <p>그래서 <b>있으면 갱신, 없으면 생성</b>한다. 체크와 해제가 같은 호출이고,
+     * 같은 값을 두 번 보내도 결과가 같다.</p>
      */
     @Override
     public ConsentDto createConsent(ConsentDto request) {
@@ -122,22 +133,32 @@ public class ConsentServiceImpl implements ConsentService {
                     GROUP_CONSENT_TYPE + "=" + request.getConsentTypeCd());
         }
 
-        if (consentRepository.existsBySurgeryIdAndConsentTypeCd(
-                request.getSurgeryId(), request.getConsentTypeCd())) {
-            throw new BusinessException(
-                    ErrorCode.CONSENT_IS_INSERT_ONE_TO_ONE, request.getConsentTypeCd());
+        // 안 보내면 체크로 본다 — 이 API 를 부르는 대부분이 체크다(ConsentDto 참고)
+        String signedYn = "N".equals(request.getSignedYn()) ? "N" : "Y";
+
+        // 이미 있으면 플래그만 갈아끼운다. consent_id 와 created_at 은 그대로 남아
+        // "언제 처음 체크했는지"가 보존되고, updated_at 이 마지막 변경 시각이 된다.
+        Consent existing =
+                consentRepository
+                        .findBySurgeryIdAndConsentTypeCd(
+                                request.getSurgeryId(), request.getConsentTypeCd())
+                        .orElse(null);
+        if (existing != null) {
+            existing.setSignedYn(signedYn);
+            return toDto(consentRepository.save(existing));
         }
+
         // PK는 서버가 채번한다. 프론트가 보낸 값이 있으면 존중하되(재시도·마이그레이션 대비),
         // 없으면 UUID로 생성한다 — surgery_id 처럼 업무 의미가 있는 코드가 아니라 내부 식별자다(§14.2)
-        String consentId = request.getConsentId() != null ? request.getConsentId() : UUID.randomUUID().toString();
+        String consentId =
+                request.getConsentId() != null ? request.getConsentId() : UUID.randomUUID().toString();
         Consent consent =
                 Consent.builder()
                         .consentId(consentId)
                         .surgeryId(request.getSurgeryId())
                         .authorStaffId(request.getAuthorStaffId())
                         .consentTypeCd(request.getConsentTypeCd())
-                        .signedBy(request.getSignedBy())
-                        .signedDt(request.getSignedDt())
+                        .signedYn(signedYn)
                         .build();
         return toDto(consentRepository.save(consent));
     }
@@ -155,8 +176,7 @@ public class ConsentServiceImpl implements ConsentService {
                 c.getSurgeryId(),
                 c.getAuthorStaffId(),
                 c.getConsentTypeCd(),
-                c.getSignedBy(),
-                c.getSignedDt(),
+                c.getSignedYn(),
                 c.getCreatedAt(),
                 c.getUpdatedAt());
     }
