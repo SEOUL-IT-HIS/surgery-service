@@ -14,7 +14,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  *
  * <p><b>지금 당장은 없어도 동작한다.</b> 프론트가 {@code next.config.ts} 의 rewrite 로
  * 프록시하기 때문이다. rewrite 는 브라우저가 아니라 Next 서버가 대신 호출하는 방식이라
- * 애초에 교차 출처가 아니다. 문제는 브라우저에서 8383 을 직접 부르는 순간 — Swagger UI 를
+ * 애초에 교차 출처가 아니다. 문제는 브라우저에서 8084 를 직접 부르는 순간 — Swagger UI 를
  * 다른 출처에서 열거나, 프록시를 거치지 않는 화면을 만들 때 막힌다.</p>
  *
  * <p>patient-service 는 같은 목적을 {@code CorsConfig} 라는 이름으로 구현했다. 이름만 다르고
