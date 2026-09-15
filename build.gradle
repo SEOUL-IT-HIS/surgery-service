@@ -55,13 +55,22 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     // OpenAPI 3 + Swagger UI
     // 의존성만 추가하면 컨트롤러의 @RequestMapping·파라미터·DTO 구조를 읽어
-    // http://localhost:8383/swagger-ui.html 에 API 목록을 자동으로 그린다.
+    // http://localhost:8084/swagger-ui.html 에 API 목록을 자동으로 그린다.
     // 어노테이션(@Operation 등)은 필수가 아니며, 설명을 더하고 싶을 때만 붙인다.
     //
     // 버전 주의 — springdoc 3.x 가 Spring Boot 4.x 용이다.
     // adminservice·patient-service 와 같은 3.0.3 으로 맞췄다.
     // (2.x 는 Boot 3 용이라 Boot 4 에서는 동작이 보장되지 않는다)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
+    // Kafka (수술 완료 → 수납 청구 연계, §21.3)
+    //
+    // 의존성 이름 주의 — Boot 4 에는 spring-boot-starter-kafka 가 없다.
+    // 자동설정(KafkaAutoConfiguration / KafkaProperties)이 spring-boot-kafka 모듈에
+    // 들어 있고 spring-kafka 는 여기에 딸려 온다. spring-kafka 만 넣으면
+    // KafkaTemplate·KafkaAdmin 빈이 자동 생성되지 않는다.
+    // (spring-boot-restclient 와 같은, Boot 4 에서 모듈이 쪼개진 사례다.
+    //  lab-imaging-service 가 같은 이유로 이 이름을 쓰고 있다)
+    implementation 'org.springframework.boot:spring-boot-kafka'
 }
 
 tasks.named('test') {

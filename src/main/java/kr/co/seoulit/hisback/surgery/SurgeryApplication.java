@@ -16,8 +16,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * 더 깊은 곳으로 옮기면 바깥 패키지의 @RestController·@Service 가 등록되지 않아
  * 요청이 404 로 떨어진다.</p>
  *
- * <p>포트는 8383 이다(application.properties). 다른 서비스는 8080 을 쓰므로
- * 프론트 next.config.ts 의 rewrite 대상 포트를 맞출 때 주의한다.</p>
+ * <p>포트는 8084 다(application.properties). 2026-09-15 포트 통일로 서비스마다
+ * 808번호 를 쓰며 수술은 04 번이다. 프론트 next.config.ts 의 rewrite 대상 포트를
+ * 맞출 때 주의한다.</p>
  */
 // @EnableScheduling — 이게 없으면 @Scheduled 가 붙은 메서드를 스프링이 그냥 무시한다.
 //                     오류도 경고도 없이 조용히 안 도는 것이라 빠뜨리면 원인을 찾기 어렵다.
