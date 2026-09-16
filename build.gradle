@@ -71,6 +71,15 @@ dependencies {
     // (spring-boot-restclient 와 같은, Boot 4 에서 모듈이 쪼개진 사례다.
     //  lab-imaging-service 가 같은 이유로 이 이름을 쓰고 있다)
     implementation 'org.springframework.boot:spring-boot-kafka'
+    // 공유 로그인 세션 — 세션을 톰캣 메모리가 아니라 Redis 에 둔다.
+    //
+    // admin 에서 로그인한 세션을 수술이 그대로 읽으려면 저장소가 같아야 한다.
+    // 각자 메모리에 두면 서비스마다 따로 로그인해야 하고, 수술 API 는 401 이 된다.
+    //
+    // 이름 주의 — spring-boot-starter-data-redis 가 아니다. 그쪽은 Redis 접속만
+    // 붙여줄 뿐 세션 저장소를 바꾸지 않는다. 오류도 안 나고 로그인도 되는데
+    // Redis 는 빈 채로 남아서, 적용됐는지 증상만으로는 구분이 안 된다.
+    implementation 'org.springframework.boot:spring-boot-starter-session-data-redis'
 }
 
 tasks.named('test') {
