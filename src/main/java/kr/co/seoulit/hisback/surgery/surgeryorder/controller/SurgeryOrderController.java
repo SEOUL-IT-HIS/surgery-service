@@ -33,6 +33,10 @@ import org.springframework.web.bind.annotation.RestController;
  * 겸했다. 그런데 그 시점에는 수술실도 확정 시각도 없어서 '일정'이라 부를 것이 없었고,
  * 같은 대상을 읽을 때는 {@code /requests} 라고 부르면서 쓸 때만 {@code /schedule} 이라
  * 부르는 모순이 있었다. 요청은 요청대로 부른다.</p>
+ *
+ * <p>현재는 REST 요청으로 오더를 접수·배정·반려한다. OPD 연계는 Kafka 기준으로 정리할
+ * 예정이며, 업무 결과는 배정 수락 또는 거절(사유 코드 포함)로 회신하고 동의서·체크리스트
+ * 같은 중간 상태는 보내지 않는 방향이다. Kafka 연계와 이 결과 회신은 아직 구현되지 않았다.</p>
  */
 @RestController
 @RequestMapping("/api/surgery/orders")

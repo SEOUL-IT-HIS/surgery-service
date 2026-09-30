@@ -164,10 +164,10 @@ public class SurgeryScheduleController {
     }
 
     /**
-     * SL2-13: 집도의 배정
+     * SL2-13: 집도의 배정·변경
      *
      * <p>집도의는 비울 수 없다 — 수술에 집도의가 없는 상태는 업무상 성립하지 않는다.
-     * 나머지 셋은 값을 비워 보내면 배정이 해제된다(SL2-166).</p>
+     * 예약 상태인 수술에서만 변경 가능하며, 변경 이력은 남기지 않는다.</p>
      */
     @PatchMapping("/{surgeryId}/surgeon")
     public ResponseEntity<ApiResponse<SurgeryDto>> assignSurgeon(

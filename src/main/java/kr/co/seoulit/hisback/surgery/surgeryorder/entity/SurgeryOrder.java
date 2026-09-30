@@ -3,6 +3,7 @@ package kr.co.seoulit.hisback.surgery.surgeryorder.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -101,6 +102,11 @@ public class SurgeryOrder {
     /** 요청 수술명. 진료가 적어 보내는 값이라 우리 원본이다 */
     @Column(name = "SURGERY_NAME", length = 100)
     private String surgeryName;
+
+    /** 수술 목적과 필요한 처치 요청에 대한 자유 텍스트 */
+    @Lob
+    @Column(name = "DETAIL_INFO")
+    private String detailInfo;
 
     /**
      * 요청자(직원) 식별자.

@@ -279,6 +279,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
         // 남은 것은 일정과 수술 내용이다. 이쪽은 배정 조합을 건드리지 않는다.
         surgery.setSurgeryDt(request.getSurgeryDt());
         surgery.setSurgeryName(request.getSurgeryName());
+        surgery.setDetailInfo(request.getDetailInfo());
         // SL2-188: 프론트가 보내는데 반영되지 않던 항목이다. 계약에 있으면 반영해야 한다.
         surgery.setSurgeryTypeCd(request.getSurgeryTypeCd());
 
@@ -347,36 +348,10 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     }
 
     /**
-     * 개별 배정 변경을 거절한다.
+     * 집도의 외 개별 배정 변경을 거절한다.
      *
-     * <p><b>이 메서드는 항상 예외를 던진다.</b> 아래 네 개의 개별 배정 API 가 전부 이것만
-     * 호출한다 — 즉 개별 배정은 더 이상 존재하지 않는 기능이다.</p>
-     *
-     * <h3>왜 기능을 없앴는가</h3>
-     *
-     * <p>배정은 오더를 승인하는 순간 <b>한 번에 확정된다</b>. 수술실·집도의·마취의·간호사가
-     * 그때 다 정해지고, 그 조합을 전제로 뒤의 모든 일이 굴러간다 — 수술실이 잡히고,
-     * 그 팀이 일정을 비우고, 체크리스트가 그 팀 이름으로 열린다.</p>
-     *
-     * <p>그런데 이 네 개의 API 는 그 뒤에 집도의 한 명만, 수술실 하나만 조용히 바꿀 수
-     * 있게 해 뒀다. 문제는 <b>아무 흔적도 남지 않는다</b>는 것이다. 이 메서드들은
-     * {@code recordHistory} 를 부르지 않아서, 수술실이 3번에서 5번으로 바뀌어도
-     * 이력 테이블에는 아무것도 없다. 수술 당일에 "왜 여기 잡혀 있지"를 되짚을 방법이
-     * 없었다는 뜻이다.</p>
-     *
-     * <p>더구나 배정이 부분적으로 바뀌면 승인 시점에 걸어 둔 검증이 무너진다. 예를 들어
-     * 마취 시행(anesthesiaYn='Y')이라 마취의를 필수로 받아 놓고는, 이 API 로 마취의를
-     * null 로 해제할 수 있었다.</p>
-     *
-     * <h3>그럼 잘못 배정한 건 어떻게 고치나</h3>
-     *
-     * <p><b>수술을 취소하고 다시 요청받는다.</b> 취소는 사유가 남고(SL2-178) 이력에도
-     * 기록되며, 오더도 취소(03)로 따라 내려가 진료 쪽이 결과를 안다. 배정을 몰래 고치는
-     * 것과 달리 관련된 사람이 전부 알게 된다.</p>
-     *
-     * <p>이것이 번거로운 절차인 것은 맞고, 실제 병원 업무에서 배정 변경이 흔하다면
-     * "배정 변경" 을 사유와 이력을 갖춘 정식 기능으로 다시 만들어야 한다. 지금 없앤 것은
-     * 그 기능이 아니라, 이력 없이 값만 갈아치우던 우회로다.</p>
+     * <p>수술실·마취의·간호사 변경은 승인 시점의 배정 검증을 무효화할 수 있어 현재
+     * 지원하지 않는다. 집도의는 별도 업무 절차에 따라 예약 상태에서만 변경할 수 있다.</p>
      */
     private void rejectIndividualAssignment(String field) {
         throw new BusinessException(
@@ -387,9 +362,8 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     /**
      * 일정 수정(PUT)이 배정 항목을 바꾸려 하면 거절한다.
      *
-     * <p>보내지 않은 값(null)은 "안 건드리겠다"로 본다 — 전체 교체 계약이던 시절에는
-     * 이것이 해제를 뜻했지만, 이제 해제할 수 있는 항목이 없으므로 그 해석은 성립하지
-     * 않는다. 값을 보냈는데 지금과 다를 때만 막는다.</p>
+     * <p>보내지 않은 값(null)은 "안 건드리겠다"로 본다. 배정은 전용 API 에서만
+     * 변경하도록 하며, 값을 보냈는데 현재 값과 다르면 이 PUT 에서는 거절한다.</p>
      */
     private void rejectAssignmentChange(String field, String requested, String current) {
         if (requested == null || requested.isBlank()) {
@@ -401,24 +375,26 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
     }
 
     /*
-     * ── 개별 배정 API 4종 (SL2-13 집도의 / SL2-15·166 수술실 / SL2-43 마취의 / SL2-63 간호사)
+     * ── 개별 배정 API (SL2-13 집도의 / SL2-15·166 수술실 / SL2-43 마취의 / SL2-63 간호사)
      *
-     * 넷 다 거절만 한다. 사유는 rejectIndividualAssignment 에 적었다.
-     *
-     * 엔드포인트를 지우지 않고 남겨 둔 이유 — 프론트가 아직 이 경로를 알고 있고,
-     * 라우트를 통째로 없애면 404 가 떠서 "서버가 죽었나" 로 읽힌다. 400 + SUR059 로
-     * 거절하면 화면에 "배정이 확정된 수술은 변경할 수 없습니다" 가 뜬다.
-     *
-     * 프론트에서 이 호출이 완전히 사라지고 나면(배정 상세 잠금) 그때 엔드포인트와
-     * 이 메서드들을 함께 지운다.
+     * 집도의만 예약 상태에서 변경할 수 있다. 다른 배정은 승인 시점 검증을 무효화할 수
+     * 있어 거절한다.
      */
 
     @Override
     @Transactional
     public SurgeryDto assignSurgeon(String surgeryId, String surgeonId) {
-        findOrThrow(surgeryId); // 없는 수술이면 404 가 먼저 나가야 한다
-        rejectIndividualAssignment("집도의");
-        return null; // 도달하지 않는다
+        Surgery surgery = findOrThrow(surgeryId);
+        if (!SurgeryStatus.SCHEDULED.equals(surgery.getStatusCd())) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_SURGERY_STATUS, "집도의 변경 시도 상태=" + surgery.getStatusCd());
+        }
+        if (surgeonId == null || surgeonId.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "집도의 식별자는 필수입니다");
+        }
+
+        surgery.setSurgeonId(surgeonId);
+        return toDto(surgeryRepository.save(surgery));
     }
 
     @Override
@@ -628,6 +604,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
                 .roomCode(request.getRoomCode())
                 .surgeryDt(request.getSurgeryDt())
                 .surgeryName(request.getSurgeryName())
+                .detailInfo(request.getDetailInfo())
                 .statusCd(request.getStatusCd())
                 .emergencyYn(request.getEmergencyYn())
                 .anesthesiaYn(request.getAnesthesiaYn())
@@ -648,6 +625,7 @@ public class SurgeryScheduleServiceImpl implements SurgeryScheduleService {
                 s.getCancelReasonCd(),
                 s.getSurgeryTypeCd(),
                 s.getSurgeryName(),
+                s.getDetailInfo(),
                 s.getEmergencyYn(),
                 s.getAnesthesiaYn(),
                 s.getActualStartDt(),

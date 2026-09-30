@@ -54,6 +54,7 @@ public class SurgeryDto {
     private String cancelReasonCd;
     private String surgeryTypeCd;
     private String surgeryName;
+    private String detailInfo;
     private String emergencyYn;
 
     /** 마취 시행 여부(Y/N). 배정할 때 정해지고, 이후 수술 화면은 읽기만 한다 */

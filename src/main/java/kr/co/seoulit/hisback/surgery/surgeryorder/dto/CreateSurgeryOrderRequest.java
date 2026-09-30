@@ -16,6 +16,9 @@ import lombok.NoArgsConstructor;
  *
  * <p>응급 여부는 어느 경로로 불렀는지가 정한다 — {@code POST /orders} 는 일반,
  * {@code POST /orders/emergency} 는 응급이다.</p>
+ *
+ * <p>{@code detailInfo} 는 수술 목적과 필요한 처치 요청을 담는 선택 자유 텍스트다.
+ * Kafka 연계 계약과 발행·수신 처리는 별도 구현 예정이다.</p>
  */
 @Data
 @NoArgsConstructor
@@ -34,6 +37,12 @@ public class CreateSurgeryOrderRequest {
      */
     private String visitId;
 
+    /**
+     * 집도의 ID. OPD 연계에서는 OPD doctorId를 이 값으로 전달한다.
+     *
+     * <p>현재는 필수 여부만 검증한다. 실제 직원인지 또는 의뢰의·처방의와 동일한지는
+     * 수술 서비스에서 확인하지 않는다.</p>
+     */
     @NotBlank
     private String surgeonId;
 
@@ -44,6 +53,8 @@ public class CreateSurgeryOrderRequest {
     private String surgeryTypeCd;
 
     private String surgeryName;
+
+    private String detailInfo;
 
     /**
      * 요청자(직원) 식별자.

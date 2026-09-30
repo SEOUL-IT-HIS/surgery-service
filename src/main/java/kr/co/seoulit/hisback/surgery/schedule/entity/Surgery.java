@@ -3,6 +3,7 @@ package kr.co.seoulit.hisback.surgery.schedule.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -77,6 +78,11 @@ public class Surgery {
 
     @Column(name = "surgery_name", length = 100)
     private String surgeryName;
+
+    /** 요청된 수술 목적과 필요한 처치 내용 */
+    @Lob
+    @Column(name = "detail_info")
+    private String detailInfo;
 
     // 프로젝트 표준 Y/N 플래그(§14.2)
     @Column(name = "emergency_yn", length = 1, nullable = false)

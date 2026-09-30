@@ -44,7 +44,11 @@ public interface SurgeryScheduleService {
     /** SL2-33: 물리 삭제 대신 상태 전이(취소)로 표현 */
     SurgeryDto cancelSchedule(String surgeryId, String cancelReasonCd);
 
-    /** SL2-13: 집도의 배정 */
+    /**
+     * SL2-13: 예약 상태 수술의 집도의 배정·변경.
+     *
+     * <p>변경 이력은 기록하지 않는다.</p>
+     */
     SurgeryDto assignSurgeon(String surgeryId, String surgeonId);
 
     /** SL2-15: 수술실 배정 */

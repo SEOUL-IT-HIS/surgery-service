@@ -59,6 +59,9 @@ public class SurgeryOrderDto {
 
     private String surgeryName;
 
+    /** 수술 목적과 필요한 처치 요청에 대한 자유 텍스트 */
+    private String detailInfo;
+
     /** 요청자 식별자. 진료·응급이 보내지 않으면 null */
     private String orderedBy;
 

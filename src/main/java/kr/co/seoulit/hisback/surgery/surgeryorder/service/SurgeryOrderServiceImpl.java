@@ -128,6 +128,7 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
                         .orderStatusCd(OrderStatus.RECEIVED)
                         .surgeryTypeCd(blankToNull(request.getSurgeryTypeCd()))
                         .surgeryName(blankToNull(request.getSurgeryName()))
+                        .detailInfo(blankToNull(request.getDetailInfo()))
                         .orderedBy(blankToNull(request.getOrderedBy()))
                         .build();
 
@@ -163,6 +164,7 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
         toCreate.setNurseId(blankToNull(request.getNurseId()));
         toCreate.setSurgeryTypeCd(order.getSurgeryTypeCd());
         toCreate.setSurgeryName(order.getSurgeryName());
+        toCreate.setDetailInfo(order.getDetailInfo());
         toCreate.setEmergencyYn(order.getEmergencyYn());
 
         SurgeryDto created = surgeryScheduleService.createScheduledSurgery(toCreate);
@@ -341,6 +343,7 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
                 cancelReasonCd,
                 o.getSurgeryTypeCd(),
                 o.getSurgeryName(),
+                o.getDetailInfo(),
                 o.getOrderedBy(),
                 o.getSurgeryId(),
                 o.getCreatedAt(),
