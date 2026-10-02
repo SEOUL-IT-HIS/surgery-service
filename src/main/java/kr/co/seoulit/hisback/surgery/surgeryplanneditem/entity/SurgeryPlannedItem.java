@@ -1,4 +1,4 @@
-package kr.co.seoulit.hisback.surgery.estimatebillinglink.entity;
+package kr.co.seoulit.hisback.surgery.surgeryplanneditem.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,9 +16,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 /**
  * 수술 예정 자원(장비·약품·재료) 목록 엔티티 (SL2-65)
  *
- * <p>수술에 쓸 예정인 품목과 수량만 기록한다. <b>가격은 갖지 않는다</b> —
- * 단가·금액은 수납(Billing) 소관이라 수술이 복제해 두면 두 곳의 값이 어긋난다(§21.2).
- * 수술은 "무엇을 몇 개 쓸 예정인지"만 알려주고, 금액 산정은 수납이 한다.</p>
+ * <p>수술에 쓸 예정인 품목과 수량을 기록한다. 가격이나 청구 정보는 포함하지 않는다.</p>
  *
  * <p>품목 코드(item_code) 역시 식별자만 저장하고 품목명은 담지 않는다(§21.9).
  * 표시할 이름이 필요하면 화면이 해당 서비스에서 직접 조회한다.</p>

@@ -1,8 +1,8 @@
-package kr.co.seoulit.hisback.surgery.estimatebillinglink.controller;
+package kr.co.seoulit.hisback.surgery.surgeryplanneditem.controller;
 
 import jakarta.validation.Valid;
-import kr.co.seoulit.hisback.surgery.estimatebillinglink.dto.SurgeryPlannedItemDto;
-import kr.co.seoulit.hisback.surgery.estimatebillinglink.service.SurgeryPlannedItemService;
+import kr.co.seoulit.hisback.surgery.surgeryplanneditem.dto.SurgeryPlannedItemDto;
+import kr.co.seoulit.hisback.surgery.surgeryplanneditem.service.SurgeryPlannedItemService;
 import kr.co.seoulit.hisback.surgery.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

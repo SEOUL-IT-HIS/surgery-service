@@ -1,18 +1,15 @@
-package kr.co.seoulit.hisback.surgery.estimatebillinglink.service;
+package kr.co.seoulit.hisback.surgery.surgeryplanneditem.service;
 
-import kr.co.seoulit.hisback.surgery.estimatebillinglink.dto.SurgeryPlannedItemDto;
+import kr.co.seoulit.hisback.surgery.surgeryplanneditem.dto.SurgeryPlannedItemDto;
 
 import java.util.List;
 
 /**
  * 수술 예정 자원목록 서비스 로직 (SL2-65 등록 / SL2-66 조회)
  *
- * <p>수술에 쓸 예정인 품목과 수량만 다룬다. 단가·금액은 수납(Billing) 소관이라
- * 수술이 갖지 않는다(§21.2). 수술은 "무엇을 몇 개 쓸 예정인지"만 알려주고
- * 금액 산정은 수납이 한다.</p>
+ * <p>수술에 쓸 예정인 품목과 수량을 관리한다.</p>
  *
- * <p>SL2-65·66 은 Jira 설명이 비어 있는 상태에서 구현이 먼저 나갔다. 화면에서 쓰는 곳이
- * 아직 없으므로, 요구사항이 채워지면서 계약이 바뀌어도 고치는 비용은 크지 않다.</p>
+ * <p>예정 항목은 수술 Worklist 에서 사용한다.</p>
  */
 public interface SurgeryPlannedItemService {
 

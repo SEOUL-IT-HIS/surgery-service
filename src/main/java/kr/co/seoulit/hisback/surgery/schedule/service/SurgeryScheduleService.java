@@ -106,7 +106,6 @@ public interface SurgeryScheduleService {
      * 수술 완료 — 진행중→완료 전이 + 실제 종료일 기록.
      * 물리 삭제가 아닌 상태 전이라 §21.6 원칙에도 부합한다.
      *
-     * <p>SL2-72(수납 청구 연계)는 아직 붙어 있지 않다 — BillingServiceClient 로 REST 호출 예정(§21.3).</p>
      */
     SurgeryDto completeSurgery(String surgeryId);
 }

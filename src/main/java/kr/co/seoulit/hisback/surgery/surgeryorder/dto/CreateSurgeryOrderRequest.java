@@ -29,15 +29,6 @@ public class CreateSurgeryOrderRequest {
     private String patientId;
 
     /**
-     * 내원 식별자 — 청구 연동(SL2-72)에 필요하다.
-     *
-     * <p>필수로 두지 않았다. 응급은 접수보다 수술 요청이 먼저 올라오는 경우가 있어
-     * 강제하면 요청 자체를 못 넣는다. 다만 이 값이 없으면 나중에 청구를 걸 수 없으므로,
-     * 진료 쪽은 되도록 채워 보내야 한다.</p>
-     */
-    private String visitId;
-
-    /**
      * 집도의 ID. OPD 연계에서는 OPD doctorId를 이 값으로 전달한다.
      *
      * <p>현재는 필수 여부만 검증한다. 실제 직원인지 또는 의뢰의·처방의와 동일한지는

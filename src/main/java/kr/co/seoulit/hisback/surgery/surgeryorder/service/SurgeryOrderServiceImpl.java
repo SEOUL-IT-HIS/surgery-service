@@ -121,7 +121,6 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
                 SurgeryOrder.builder()
                         .orderId(UUID.randomUUID().toString())
                         .patientId(request.getPatientId())
-                        .visitId(blankToNull(request.getVisitId()))
                         .surgeonId(request.getSurgeonId())
                         .requestedDt(request.getRequestedDt())
                         .emergencyYn(emergency ? "Y" : "N")
@@ -334,7 +333,6 @@ public class SurgeryOrderServiceImpl implements SurgeryOrderService {
         return new SurgeryOrderDto(
                 o.getOrderId(),
                 o.getPatientId(),
-                o.getVisitId(),
                 o.getSurgeonId(),
                 o.getRequestedDt(),
                 o.getEmergencyYn(),

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 /**
  * 수술기록 서비스 구현체 (SL2-51)
  *
- * <p>마취기록·간호기록과 달리 <b>수정을 허용</b>한다. 집도의가 수술 직후 초안(01)으로 남기고
+ * <p>마취기록과 달리 <b>수정을 허용</b>한다. 집도의가 수술 직후 초안(01)으로 남기고
  * 나중에 다듬어 확정하는 것이 실제 업무 흐름이기 때문이다. 대신 확정 이후의 변경 제한은
  * opStatusCd 로 표현할 여지를 남겨뒀다.</p>
  *
@@ -67,7 +67,7 @@ public class OperativeRecordServiceImpl implements OperativeRecordService {
     /** SL2-55: 수술기록 작성 — 상태를 안 보내면 초안(01)으로 시작한다. */
     @Override
     public OperativeRecordDto createOperativeRecord(OperativeRecordDto request) {
-        // 없는 수술에는 기록지를 만들 수 없다(2026-08-27) — 간호기록과 같은 누락이었다.
+        // 없는 수술에는 기록지를 만들 수 없다(2026-08-27).
         //   조회에만 가드가 있어 오타로 만든 행이 DB 에만 남고 화면에서는 404 로 가려졌다.
         surgeryGuard.requireExists(request.getSurgeryId());
 

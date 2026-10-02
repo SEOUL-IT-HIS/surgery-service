@@ -26,9 +26,6 @@ public class SurgeryOrderDto {
 
     private String patientId;
 
-    /** 내원 식별자. 청구 연동(SL2-72)에 쓰인다 */
-    private String visitId;
-
     private String surgeonId;
 
     /** 희망 수술일 (yyyy-MM-dd). 확정일이 아니다 */

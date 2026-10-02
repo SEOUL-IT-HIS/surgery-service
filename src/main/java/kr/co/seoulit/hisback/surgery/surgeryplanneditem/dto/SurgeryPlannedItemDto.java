@@ -1,4 +1,4 @@
-package kr.co.seoulit.hisback.surgery.estimatebillinglink.dto;
+package kr.co.seoulit.hisback.surgery.surgeryplanneditem.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
  * <p>필드명은 엔티티(SurgeryPlannedItem)와 1:1로 맞춘다. 이름이 다르면 변환할 때
  * 손으로 맞춰야 하고, JSON 키도 어긋나 프론트에서 undefined 가 된다.</p>
  *
- * <p>가격 필드가 없는 이유 — 단가·금액은 수납(Billing) 소관이라 수술이 갖지 않는다(§21.2).</p>
+ * <p>예정 품목과 수량만 관리한다. 가격이나 청구 정보는 포함하지 않는다.</p>
  */
 @Data
 @NoArgsConstructor

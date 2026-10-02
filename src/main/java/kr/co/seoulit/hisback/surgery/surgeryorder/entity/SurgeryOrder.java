@@ -47,19 +47,6 @@ public class SurgeryOrder {
     @Column(name = "PATIENT_ID", length = 36, nullable = false)
     private String patientId;
 
-    /**
-     * 내원 식별자.
-     *
-     * <p><b>청구 연동(SL2-72)에 필요한 값이다</b> — billing 이 요구하는 항목이
-     * {@code (patientId, visitId, surgeryCode, quantity)} 인데, 예전 구조에는 이 값을
-     * 담을 자리가 없어 "어느 내원 건으로 청구할지" 알 수 없었다.</p>
-     *
-     * <p>진료·응급이 보내주지 않으면 비어 있다. 필수로 두지 않은 이유 — 응급은 접수보다
-     * 수술 요청이 먼저 올라오는 경우가 있어, 값을 강제하면 요청 자체를 못 넣는다.</p>
-     */
-    @Column(name = "VISIT_ID", length = 36)
-    private String visitId;
-
     /** 요청한 집도의. 병원관리 서비스 소유라 식별자만 보유한다 */
     @Column(name = "SURGEON_ID", length = 36, nullable = false)
     private String surgeonId;

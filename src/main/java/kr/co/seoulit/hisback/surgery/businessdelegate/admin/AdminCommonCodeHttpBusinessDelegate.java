@@ -9,6 +9,7 @@ import kr.co.seoulit.hisback.surgery.businessdelegate.admin.dto.CommonCodeItemRe
 import kr.co.seoulit.hisback.surgery.businessdelegate.dto.ExternalApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ import org.springframework.web.client.RestTemplate;
  */
 @Slf4j
 @Component
+@Profile("!local-simulation")
 public class AdminCommonCodeHttpBusinessDelegate implements AdminCommonCodeBusinessDelegate {
 
     private static final String CODE_GROUP_LIST_PATH = "/api/commonCodeGroup/list";

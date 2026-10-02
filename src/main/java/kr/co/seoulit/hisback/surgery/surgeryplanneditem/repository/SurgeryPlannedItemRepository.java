@@ -1,7 +1,7 @@
-package kr.co.seoulit.hisback.surgery.estimatebillinglink.repository;
+package kr.co.seoulit.hisback.surgery.surgeryplanneditem.repository;
 
 import java.util.List;
-import kr.co.seoulit.hisback.surgery.estimatebillinglink.entity.SurgeryPlannedItem;
+import kr.co.seoulit.hisback.surgery.surgeryplanneditem.entity.SurgeryPlannedItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**

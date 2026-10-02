@@ -228,7 +228,6 @@ public class SurgeryScheduleController {
 
     // 수술 종료 — status_cd를 03(완료)으로 전이한다. 진행상태(progress_cd)와는 별도 트랙이다.
     // 프론트 계약이 /end 라 이쪽을 정식 경로로 둔다. 시작(/start)과 대칭이다.
-    // SL2-72 수납(Billing) 청구 연계는 아직 붙어 있지 않다 — BillingServiceClient 로 REST 호출 예정(§21.3).
     @PatchMapping("/{surgeryId}/end")
     public ResponseEntity<ApiResponse<SurgeryDto>> endSurgery(@PathVariable String surgeryId) {
         return ResponseEntity.ok(ApiResponse.success(surgeryScheduleService.completeSurgery(surgeryId)));
